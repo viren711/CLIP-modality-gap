@@ -1,0 +1,83 @@
+Contrastive objectives
+
+    Oord, Li & Vinyals (2018) – Representation Learning with Contrastive Predictive Coding (arXiv 2018)
+    https://arxiv.org/abs/1807.03748
+
+    Chen, Kornblith, Norouzi & Hinton (2020) – A Simple Framework for Contrastive Learning of Visual Representations (SimCLR) (ICML 2020)
+    PMLR: https://proceedings.mlr.press/v119/chen20j.html
+    PDF:
+    https://proceedings.mlr.press/v119/chen20j/chen20j.pdf
+
+    Project page:
+    https://simclr.github.io/
+
+    He et al. (2020) – Momentum Contrast for Unsupervised Visual Representation Learning (MoCo) (CVPR 2020)
+    CVF/ML Anthology:
+    https://mlanthology.org/cvpr/2020/he2020cvpr-momentum/
+
+    arXiv: https://arxiv.org/abs/1911.05722
+
+    Chen & He (2021) – Exploring Simple Siamese Representation Learning (SimSiam) (CVPR 2021)
+    CVF HTML:
+    https://openaccess.thecvf.com/content/CVPR2021/html/Chen_Exploring_Simple_Siamese_Representation_Learning_CVPR_2021_paper.html
+
+    PDF:
+    https://openaccess.thecvf.com/content/CVPR2021/papers/Chen_Exploring_Simple_Siamese_Representation_Learning_CVPR_2021_paper.pdf
+
+    arXiv: https://arxiv.org/abs/2011.10566
+    Code: https://github.com/facebookresearch/simsiam
+    
+    
+    
+Understanding contrastive learning
+
+    Wang & Isola (2020) – Understanding Contrastive Representation Learning through Alignment and Uniformity on the Hypersphere (ICML 2020)
+    PMLR: https://proceedings.mlr.press/v119/wang20k.html
+    PDF:
+    https://proceedings.mlr.press/v119/wang20k/wang20k.pdf
+
+    ICLR poster page:
+    https://icml.cc/virtual/2020/poster/6657
+
+    Tian et al. (2020) – What Makes for Good Views for Contrastive Learning? (NeurIPS 2020)
+    NeurIPS proceedings:
+    https://proceedings.neurips.cc/paper_files/paper/2020/file/4c2e5eaae9152079b9e95845750bb9ab-Paper.pdf
+
+    Poster page:
+    https://neurips.cc/virtual/2020/public/poster_4c2e5eaae9152079b9e95845750bb9ab.html
+
+
+
+
+
+Vision–language contrastive learning
+
+    Radford et al. (2021) – Learning Transferable Visual Models From Natural Language Supervision (CLIP) (ICML 2021)
+    PMLR PDF:
+    https://proceedings.mlr.press/v139/radford21a/radford21a.pdf
+
+    arXiv: https://arxiv.org/abs/2103.00020
+    ICML slides:
+    https://icml.cc/media/icml-2021/Slides/9193.pdf
+
+    Zhai et al. (2023) – Sigmoid Loss for Language Image Pre-Training (SigLIP) (ICCV 2023)
+    CVF PDF:
+    https://openaccess.thecvf.com/content/ICCV2023/papers/Zhai_Sigmoid_Loss_for_Language_Image_Pre-Training_ICCV_2023_paper.pdf
+
+    arXiv:
+    https://arxiv.org/abs/2303.15343
+
+    Liang et al. (2022) – Mind the Gap: Understanding the Modality Gap in Multi-modal Contrastive Representation Learning (NeurIPS 2022)
+    NeurIPS PDF:
+    https://proceedings.neurips.cc/paper_files/paper/2022/file/702f4db7543a7432431df588d57bc7c9-Paper-Conference.pdf
+
+    arXiv:
+    https://arxiv.org/abs/2203.02053
+
+    Yuksekgonul et al. (2023) – When and Why Vision-Language Models Behave Like Bags-of-Words, and What to Do About It? (ICLR 2023)
+    OpenReview: https://openreview.net/forum?id=KRLUvxh8uaX
+    ICLR poster:
+    https://iclr.cc/virtual/2023/poster/10875
+
+    Code & data:
+    https://github.com/mertyg/vision-language-models-are-bows

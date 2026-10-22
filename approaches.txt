@@ -1,0 +1,293 @@
+CS 725 PROJECT - APPROACHES
+Does closing the modality gap help hard-negative-trained CLIP?
+Team: Viren Mehta, Lavanay Thakral, Shrey Patel, Yash Chopra
+===========================================================================
+
+0. RESEARCH QUESTION IN ONE LINE
+---------------------------------------------------------------------------
+CLIP-style models put image embeddings and text embeddings in separate
+regions of the shared space (the "modality gap"). NegCLIP (hard-negative
+fine-tuning) improves compositionality. We ask: if we shrink or close the
+gap in NegCLIP, does it become more robust (as Chowers et al. found for
+plain CLIP) without losing accuracy, and does the effect differ from a
+model trained WITHOUT hard negatives?
+
+
+1. BACKGROUND THE APPROACHES BUILD ON
+---------------------------------------------------------------------------
+Contrastive objective (CPC / SimCLR / MoCo / CLIP):
+  InfoNCE pulls matched pairs together and pushes apart non-matched pairs
+  in the batch. CLIP applies it symmetrically (image->text and
+  text->image) over an N x N cosine-similarity matrix scaled by a learned
+  temperature (final logit scale ~100, i.e. tau = 1/100).
+
+Alignment & uniformity (Wang & Isola 2020):
+  The contrastive loss splits into an alignment term (matched pairs close)
+  and a uniformity term (embeddings spread over the hypersphere). These
+  are useful diagnostic metrics to report alongside gap size.
+
+Modality gap (Liang et al., NeurIPS 2022) - "Mind the Gap":
+  - Gap vector: Delta = mean_i(x_i) - mean_i(y_i), with x_i, y_i the
+    L2-normalised image / text embeddings. For CLIP ViT-B/32 on 5,000
+    MSCOCO val pairs, ||Delta|| = 0.82.
+  - Causes: (a) cone effect - each randomly initialised encoder already
+    maps inputs into a narrow cone, and the two cones differ;
+    (b) the contrastive loss at low temperature with mismatched data
+    keeps the gap during training.
+  - Shift experiment: x_shift = Normalize(x_i - lambda * Delta),
+    y_shift = Normalize(y_i + lambda * Delta). Varying lambda changes the
+    gap; the original gap is the loss minimum at tau = 1/100.
+  - Changing the gap this way shifts zero-shot accuracy and fairness
+    (bias) on several downstream tasks.
+
+NegCLIP (Yuksekgonul et al., ICLR 2023) - "Bags of Words":
+  - Introduces the ARO benchmark: VG-Relation, VG-Attribution,
+    COCO-Order, Flickr30k-Order.
+  - NegCLIP = CLIP ViT-B/32 fine-tuned on COCO with
+      (i) hard negative captions made by swapping nouns / adjectives /
+          verb phrases etc., added as extra columns (N x 2N similarity
+          matrix, no column-wise loss on the negative captions), and
+      (ii) hard negative images (one of the 3 nearest-neighbour images).
+  - Ablation model CLIP-FT: same COCO fine-tuning, NO hard negatives.
+    Settings: open_clip fork, 5 epochs, AdamW, cosine LR, 50 warmup
+    steps, LR in {1e-5, 5e-6, 1e-6}, batch 1024, chosen by COCO val
+    retrieval.
+  - Gains: VG-Rel 63->81, VG-Attr 62->71, COCO-Order 46->86,
+    Flickr-Order 59->91, with no loss on downstream tasks.
+
+Chowers et al. 2026 - "Bug or Feature?" (not in papers/ folder yet):
+  Under some conditions the gap is a single global vector roughly
+  ORTHOGONAL to the embeddings. Moving one modality toward the other
+  along it improves robustness to embedding perturbations without changing
+  clean accuracy.
+
+Kamath et al., ECCV 2024 - "Hard Positive Truth" (not in papers/ yet):
+  Hard-negative fine-tuning can raise compositionality scores while
+  hurting performance on HARD POSITIVES (captions that are reworded but
+  mean the same thing), with drops of up to 38.7%. This means we must
+  check more than hard-negative benchmarks.
+
+-> Action: download the Chowers and Kamath PDFs into papers/papers/ so
+   their exact definitions (gap vector, perturbation protocol, hard
+   positive sets) can be copied faithfully.
+
+
+2. MODELS (ALL INFERENCE-ONLY EXCEPT OPTIONAL 2c)
+---------------------------------------------------------------------------
+  a) Base CLIP / OpenCLIP ViT-B/32 (OpenAI weights through open_clip).
+  b) NegCLIP ViT-B/32 - public checkpoint from
+     github.com/mertyg/vision-language-models-are-bows.
+  c) CONTROL - "OpenCLIP trained without hard negatives" (Approach 03).
+     The cleanest control is CLIP-FT: base CLIP fine-tuned on COCO with
+     the SAME recipe as NegCLIP but with no hard negatives. NegCLIP
+     differs from base CLIP in two ways at once (COCO fine-tuning AND
+     hard negatives), so comparing NegCLIP only to base CLIP would mix up
+     the two. With CLIP-FT:
+        base CLIP -> CLIP-FT   = effect of COCO fine-tuning
+        CLIP-FT   -> NegCLIP   = effect of hard negatives only
+     If no CLIP-FT checkpoint is released, train it ourselves with
+     open_clip (`--train-data` COCO, 5 epochs, LR 5e-6, batch as large as
+     the GPU allows). This is the only training in the project. On one
+     GPU, train ViT-B/32 with a smaller batch and use the same batch for
+     a NegCLIP re-run if a fair comparison is needed.
+  d) Optional extras if time permits: a larger OpenCLIP (ViT-B/16 or
+     LAION-trained B/32) and SigLIP, to see if findings carry over to a
+     sigmoid loss (SigLIP has no softmax over negatives).
+
+
+3. APPROACH 01 - MEASURE THE GAP (baseline, inference only)
+---------------------------------------------------------------------------
+Data: 5,000 image-caption pairs from MSCOCO val (as in Liang et al.).
+Also repeat on Flickr30k so the gap vector is not COCO-specific. This
+matters because NegCLIP and CLIP-FT were fine-tuned on COCO.
+
+For every model, compute and report:
+  - Gap vector Delta = mean(img) - mean(txt), and ||Delta|| (Euclidean).
+  - Centroid cosine: cos(mean(img), mean(txt)).
+  - Orthogonality check (tests the Chowers condition):
+      mean_i |<x_i, Delta_hat>| and mean_i |<y_i, Delta_hat>|.
+    Near 0 means the gap is close to orthogonal to the embeddings.
+  - Fraction of the gap explained by one direction: run PCA on the
+    centred embeddings of both modalities and check whether the top
+    component separates the modalities (linear probe accuracy for
+    "image vs text" is also an easy number).
+  - Mean / median matched-pair cosine similarity, and same for
+    non-matched pairs.
+  - Wang & Isola alignment (E||x - y||^2 over matched pairs) and
+    uniformity (log E exp(-2||u - v||^2)) for each modality.
+  - Visualisation: PCA / UMAP of image + text embeddings, coloured by
+    modality, for each model (side-by-side figure).
+
+Expected outcome / hypothesis to test: hard-negative training pushes
+captions that differ only by word order apart. This may change the shape
+of the text cone, so NegCLIP's ||Delta|| may differ from CLIP-FT's.
+
+
+4. APPROACH 02 - ALTER THE GAP (post-hoc, no retraining)
+---------------------------------------------------------------------------
+All shifts use the Delta from Approach 01 (computed on a held-out split,
+NOT on the evaluation data, to avoid leakage). Work on L2-normalised
+embeddings and re-normalise after shifting.
+
+  02-A Orthogonal shift along the gap vector (Chowers-style)
+       y'_i = Normalize(y_i + lambda * Delta)        (text moves only)
+       lambda in {0, 0.25, 0.5, 0.75, 1.0} (closing), plus a few
+       negative values (widening) for a full curve as in Liang Fig. 3.
+       For a strictly orthogonal version, first remove each embedding's
+       component along Delta_hat before adding lambda * Delta, so the
+       shift does not change the within-modality geometry.
+       Variant: Liang-style two-sided shift (image -lambda*Delta/2,
+       text +lambda*Delta/2).
+
+  02-B Mean / median shift by a set margin
+       - Mean shift: same as 02-A but stop when the remaining gap
+         ||mean(img') - mean(txt')|| equals a target margin
+         m in {original (no shift), 0.6, 0.4, 0.2, 0.0}. (0.82 is the
+         original for OpenAI CLIP B/32; NegCLIP's will differ.) Solve for lambda by a
+         simple line search, so models can be compared at the SAME
+         remaining gap instead of the same lambda.
+       - Median shift: replace the mean with the coordinate-wise median
+         when computing Delta. This is more robust to outlier captions.
+
+  For every setting, log the remaining gap, so all plots can use
+  "remaining gap" on the x-axis.
+
+IMPORTANT NOTE ON WHAT A SHIFT CAN CHANGE
+  Compositionality benchmarks (ARO, SugarCrepe) are mostly
+  image -> text: for one image, pick the correct caption among
+  candidates. For a fixed image x and text shifted by c = lambda*Delta:
+      x . (y + c) = x.y + x.c
+  The x.c term is the SAME for every candidate caption, so without
+  re-normalisation the ranking does not change at all. Ranking only
+  changes through the re-normalisation term ||y + c||, which differs per
+  caption only if the captions have different components along Delta.
+  If Delta is exactly orthogonal to all embeddings, ||y + c|| is the same
+  for every caption, and image -> text accuracy is EXACTLY unchanged.
+  This matches the Chowers result ("no change in clean accuracy").
+  Consequences for the project:
+    - Expect little or no change in clean compositional accuracy. That
+      is a valid finding, not a bug, but check it against this algebra.
+    - The interesting effects should appear in (i) text -> image
+      retrieval (x.c differs per image), (ii) absolute similarity
+      values / margins, and (iii) ROBUSTNESS under perturbation
+      (Approach 04-C). Plan the evaluation so these are measured.
+    - Report the per-caption spread of <y, Delta_hat> as a diagnostic:
+      the larger it is, the more a shift can change rankings.
+
+
+5. APPROACH 03 - CONTROL (isolate hard-negative training)
+---------------------------------------------------------------------------
+Run every Approach 01/02 measurement and every Approach 04 evaluation on:
+    base CLIP | CLIP-FT (control) | NegCLIP
+at each gap setting. The main comparison is
+    [NegCLIP(gap closed) - NegCLIP(original)]
+         vs
+    [CLIP-FT(gap closed) - CLIP-FT(original)].
+If closing the gap helps NegCLIP more (or less) than the control, that
+difference is the effect of hard-negative training. Compare at matched
+remaining-gap values (02-B), not at matched lambda.
+
+
+6. APPROACH 04 - EVALUATE
+---------------------------------------------------------------------------
+Tooling: LAION CLIP_benchmark (supports open_clip models and custom
+checkpoints). Add a small wrapper that applies the gap shift to the text
+(and/or image) embeddings after encoding and before the similarity
+computation. Check the exact list of compositionality datasets the
+current CLIP_benchmark version ships, and add any missing ones with
+their original loaders.
+
+  04-A Compositionality (hard negatives)
+       - ARO: VG-Relation, VG-Attribution, COCO-Order, Flickr30k-Order
+         (macro accuracy, as in Yuksekgonul et al.).
+       - SugarCrepe (replace / swap / add obj, att, rel). It is less
+         affected by NegCLIP-style shortcuts than ARO order tasks.
+       - Optional: Winoground (text/image/group score).
+
+  04-B Hard positives (Kamath et al. 2024)
+       Their hard-positive benchmark: a model should score a reworded
+       caption with the same meaning ABOVE the hard negative. Report the
+       hard-positive vs hard-negative gap in accuracy for each model and
+       gap setting. Hypothesis: NegCLIP over-reacts to surface word
+       changes. Closing the gap might reduce this - or make it worse.
+
+  04-C Robustness (the Chowers effect)
+       - Embedding-space perturbations: add Gaussian noise
+         N(0, sigma^2 I) to embeddings (then re-normalise), with
+         sigma in a sweep. Plot accuracy vs sigma for each gap setting.
+       - Input-space perturbations (optional): ImageNet-C style image
+         corruptions; caption perturbations (typos, synonyms).
+       - Metric: accuracy drop relative to clean, area under the
+         accuracy-vs-sigma curve.
+
+  04-D Image-captioning / retrieval dataset
+       - MSCOCO 5k test and Flickr30k 1k test: image->text and
+         text->image Recall@1/5/10. Text->image is where a shift is
+         most likely to change rankings (see note in Section 4).
+       - Caveat: NegCLIP and CLIP-FT were trained on COCO. Treat
+         Flickr30k as the out-of-domain retrieval check.
+
+  04-E Sanity: zero-shot classification
+       CIFAR-10/100, ImageNet (or ImageNet subset) zero-shot top-1, to
+       confirm that the gap change does not hurt standard accuracy.
+
+  04-F Calibration / margins (cheap, informative)
+       Distribution of (correct-caption score - best-negative score) and
+       expected calibration error (ECE) of the softmax over candidates at
+       the model's temperature. Shifts change absolute similarities, so
+       this is where an effect can show up even if accuracy does not
+       change.
+
+
+7. OPTIONAL EXTENSIONS (if time remains after the core plan)
+---------------------------------------------------------------------------
+  E1 Training-time gap control: fine-tune CLIP-FT and NegCLIP at a
+     higher temperature (Liang et al. show higher tau shrinks the gap
+     during fine-tuning) and compare with post-hoc shifting.
+  E2 Gap-closing regulariser: add lambda * ||mean(img) - mean(txt)||^2
+     to the NegCLIP loss during fine-tuning.
+  E3 Batch size / number of negatives: repeat CLIP-FT vs NegCLIP
+     fine-tuning at 2-3 batch sizes and record ||Delta||. This ties the
+     project back to the course theme (role of batch size and negatives
+     in contrastive learning).
+  E4 Sigmoid loss: same measurements on SigLIP to see if the gap and
+     the shift effect depend on the softmax over negatives.
+
+
+8. MAPPING TO THE PROPOSAL DELIVERABLES
+---------------------------------------------------------------------------
+Mid-project presentation:
+  [ ] Approach 01 done for base CLIP, CLIP-FT and NegCLIP (||Delta||,
+      orthogonality, alignment/uniformity, PCA/UMAP figure).
+  [ ] Approach 02-A implemented; first gap-vs-accuracy curve on base
+      OpenCLIP.
+  [ ] CLIP_benchmark pipeline running on at least ARO + SugarCrepe with
+      the shift wrapper.
+  [ ] CLIP-FT checkpoint obtained or training started.
+
+Final presentation:
+  [ ] Full grid: {base CLIP, CLIP-FT, NegCLIP} x {02-A, 02-B mean,
+      02-B median} x {remaining-gap values} x {04-A ... 04-F}.
+  [ ] Main plot: Delta(metric) from closing the gap, NegCLIP vs CLIP-FT,
+      at matched remaining gap.
+  [ ] Robustness curves (04-C) and hard-positive results (04-B).
+  [ ] Clear answer to the question, with the trade-off between
+      accuracy and robustness.
+
+
+9. RISKS AND HOW TO HANDLE THEM
+---------------------------------------------------------------------------
+  - No public CLIP-FT checkpoint -> train with open_clip (about 5
+    epochs on COCO train for ViT-B/32 fits on one GPU).
+  - Rank-based metrics barely move (see Section 4 note) -> this is an
+    expected result. Put the weight on robustness, retrieval
+    (text->image) and margin/calibration metrics, and explain it with
+    the algebra.
+  - Gap vector computed on COCO but NegCLIP trained on COCO -> also
+    compute Delta on Flickr30k / CC3M captions and check that the
+    results agree.
+  - Multiple comparisons over many settings -> fix the lambda/margin
+    grid in advance; report results on every benchmark, not only the
+    ones that improve.
+  - Variance: the shift itself is deterministic, but bootstrap over
+    benchmark examples to get confidence intervals.

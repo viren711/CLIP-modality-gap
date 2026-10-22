@@ -1,0 +1,65 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Datasets (re-create with scripts/download_data.sh) ---
+data/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# --- Model weights / checkpoints ---
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+
+# --- Large cached arrays / embeddings ---
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# --- Logs & experiment tracking ---
+logs/
+*.log
+wandb/
+runs/
+mlruns/
+lightning_logs/
+
+# --- Caches ---
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Secrets ---
+.env
+.env.*
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
