@@ -1,0 +1,30 @@
+{
+  "ft_hardcap": {
+    "run": "ft_hardcap_lr5e-06_s0",
+    "lr": 5e-06,
+    "val_mean_R1": 0.44502995908260345,
+    "val_gap_norm": 0.757905900478363,
+    "checkpoint": "/tmp/cs725/cs725_project/checkpoints/ft_hardcap.pt"
+  },
+  "ft_hardimg": {
+    "run": "ft_hardimg_lr1e-06_s0",
+    "lr": 1e-06,
+    "val_mean_R1": 0.44399668276309967,
+    "val_gap_norm": 0.8826882839202881,
+    "checkpoint": "/tmp/cs725/cs725_project/checkpoints/ft_hardimg.pt"
+  },
+  "ft_negclip": {
+    "run": "ft_negclip_lr1e-06_s0",
+    "lr": 1e-06,
+    "val_mean_R1": 0.43666045367717743,
+    "val_gap_norm": 0.8769763708114624,
+    "checkpoint": "/tmp/cs725/cs725_project/checkpoints/ft_negclip.pt"
+  },
+  "ft_plain": {
+    "run": "ft_plain_lr5e-06_s0",
+    "lr": 5e-06,
+    "val_mean_R1": 0.4574292153120041,
+    "val_gap_norm": 0.7745369672775269,
+    "checkpoint": "/tmp/cs725/cs725_project/checkpoints/ft_plain.pt"
+  }
+}

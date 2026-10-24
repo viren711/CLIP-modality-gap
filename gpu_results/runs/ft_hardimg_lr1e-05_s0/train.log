@@ -1,0 +1,52 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+{"epoch": 0, "step": 0, "val_i2t_R@1": 0.34097954630851746, "val_i2t_R@5": 0.6061169505119324, "val_i2t_R@10": 0.715230405330658, "val_t2i_R@1": 0.2924157977104187, "val_t2i_R@5": 0.5525935292243958, "val_t2i_R@10": 0.6703864336013794, "val_mean_R@1": 0.3166976720094681, "val_gap_norm": 0.8227041959762573, "val_matched_cos": 0.3043631315231323, "logit_scale": 100.0}
+batch layout: 512 images x 512 texts
+epoch 1 step 50/2135 loss 1.2620 lr 1.00e-05 0.77s/step
+epoch 1 step 100/2135 loss 1.0264 lr 9.99e-06 0.66s/step
+epoch 1 step 150/2135 loss 0.9223 lr 9.94e-06 0.62s/step
+epoch 1 step 200/2135 loss 0.8868 lr 9.87e-06 0.60s/step
+epoch 1 step 250/2135 loss 0.8264 lr 9.77e-06 0.59s/step
+epoch 1 step 300/2135 loss 0.7842 lr 9.65e-06 0.59s/step
+epoch 1 step 350/2135 loss 0.7401 lr 9.50e-06 0.59s/step
+epoch 1 step 400/2135 loss 0.7083 lr 9.32e-06 0.59s/step
+{"epoch": 1, "step": 427, "train_loss": 0.8793349866286374, "epoch_time_s": 250.68810534477234, "val_i2t_R@1": 0.45174622535705566, "val_i2t_R@5": 0.7274230122566223, "val_i2t_R@10": 0.8212440609931946, "val_t2i_R@1": 0.4376937448978424, "val_t2i_R@5": 0.7175036072731018, "val_t2i_R@10": 0.8150444030761719, "val_mean_R@1": 0.44471998512744904, "val_gap_norm": 0.899730384349823, "val_matched_cos": 0.29208511114120483, "logit_scale": 99.98202514648438}
+epoch 2 step 450/2135 loss 0.5224 lr 9.12e-06 0.84s/step
+epoch 2 step 500/2135 loss 0.5098 lr 8.89e-06 0.65s/step
+epoch 2 step 550/2135 loss 0.4970 lr 8.65e-06 0.61s/step
+epoch 2 step 600/2135 loss 0.4808 lr 8.38e-06 0.59s/step
+epoch 2 step 650/2135 loss 0.4573 lr 8.09e-06 0.58s/step
+epoch 2 step 700/2135 loss 0.4334 lr 7.79e-06 0.57s/step
+epoch 2 step 750/2135 loss 0.4288 lr 7.47e-06 0.57s/step
+epoch 2 step 800/2135 loss 0.4148 lr 7.13e-06 0.56s/step
+epoch 2 step 850/2135 loss 0.3907 lr 6.79e-06 0.56s/step
+{"epoch": 2, "step": 854, "train_loss": 0.4546669708342407, "epoch_time_s": 240.42672729492188, "val_i2t_R@1": 0.43170076608657837, "val_i2t_R@5": 0.7125439047813416, "val_i2t_R@10": 0.8065716028213501, "val_t2i_R@1": 0.430254191160202, "val_t2i_R@5": 0.7075842022895813, "val_t2i_R@10": 0.8020251989364624, "val_mean_R@1": 0.4309774786233902, "val_gap_norm": 0.7775484919548035, "val_matched_cos": 0.2912798523902893, "logit_scale": 100.0}
+epoch 3 step 900/2135 loss 0.2781 lr 6.43e-06 0.65s/step
+epoch 3 step 950/2135 loss 0.2648 lr 6.07e-06 0.59s/step
+epoch 3 step 1000/2135 loss 0.2587 lr 5.69e-06 0.59s/step
+epoch 3 step 1050/2135 loss 0.2623 lr 5.32e-06 0.58s/step
+epoch 3 step 1100/2135 loss 0.2420 lr 4.94e-06 0.58s/step
+epoch 3 step 1150/2135 loss 0.2377 lr 4.57e-06 0.58s/step
+epoch 3 step 1200/2135 loss 0.2281 lr 4.19e-06 0.58s/step
+epoch 3 step 1250/2135 loss 0.2303 lr 3.82e-06 0.58s/step
+{"epoch": 3, "step": 1281, "train_loss": 0.24791887423472886, "epoch_time_s": 245.6485583782196, "val_i2t_R@1": 0.4279809892177582, "val_i2t_R@5": 0.7067576050758362, "val_i2t_R@10": 0.8096714019775391, "val_t2i_R@1": 0.4224013090133667, "val_t2i_R@5": 0.7048977017402649, "val_t2i_R@10": 0.8016119003295898, "val_mean_R@1": 0.42519114911556244, "val_gap_norm": 0.6494351029396057, "val_matched_cos": 0.2905269265174866, "logit_scale": 100.0}
+epoch 4 step 1300/2135 loss 0.1534 lr 3.46e-06 0.91s/step
+epoch 4 step 1350/2135 loss 0.1588 lr 3.11e-06 0.65s/step
+epoch 4 step 1400/2135 loss 0.1509 lr 2.77e-06 0.61s/step
+epoch 4 step 1450/2135 loss 0.1491 lr 2.44e-06 0.59s/step
+epoch 4 step 1500/2135 loss 0.1452 lr 2.12e-06 0.58s/step
+epoch 4 step 1550/2135 loss 0.1436 lr 1.82e-06 0.58s/step
+epoch 4 step 1600/2135 loss 0.1448 lr 1.54e-06 0.58s/step
+epoch 4 step 1650/2135 loss 0.1350 lr 1.28e-06 0.58s/step
+epoch 4 step 1700/2135 loss 0.1437 lr 1.04e-06 0.58s/step
+{"epoch": 4, "step": 1708, "train_loss": 0.14681337330603766, "epoch_time_s": 245.78189373016357, "val_i2t_R@1": 0.42281463742256165, "val_i2t_R@5": 0.7032444477081299, "val_i2t_R@10": 0.8096714019775391, "val_t2i_R@1": 0.4133085310459137, "val_t2i_R@5": 0.7024178504943848, "val_t2i_R@10": 0.7970654964447021, "val_mean_R@1": 0.41806158423423767, "val_gap_norm": 0.5848627686500549, "val_matched_cos": 0.28809434175491333, "logit_scale": 100.0}
+epoch 5 step 1750/2135 loss 0.1201 lr 8.18e-07 0.70s/step
+epoch 5 step 1800/2135 loss 0.1139 lr 6.24e-07 0.62s/step
+epoch 5 step 1850/2135 loss 0.1129 lr 4.54e-07 0.60s/step
+epoch 5 step 1900/2135 loss 0.1115 lr 3.10e-07 0.59s/step
+epoch 5 step 1950/2135 loss 0.1103 lr 1.93e-07 0.58s/step
+epoch 5 step 2000/2135 loss 0.1094 lr 1.03e-07 0.57s/step
+epoch 5 step 2050/2135 loss 0.1080 lr 4.10e-08 0.57s/step
+epoch 5 step 2100/2135 loss 0.1124 lr 6.95e-09 0.57s/step
+{"epoch": 5, "step": 2135, "train_loss": 0.11199731097078994, "epoch_time_s": 242.57793760299683, "val_i2t_R@1": 0.42364123463630676, "val_i2t_R@5": 0.702624499797821, "val_i2t_R@10": 0.8073982000350952, "val_t2i_R@1": 0.4162016808986664, "val_t2i_R@5": 0.7001446485519409, "val_t2i_R@10": 0.7974787950515747, "val_mean_R@1": 0.4199214577674866, "val_gap_norm": 0.570835530757904, "val_matched_cos": 0.287741482257843, "logit_scale": 100.0}
+saved /tmp/cs725/cs725_project/runs/ft_hardimg_lr1e-05_s0/final.pt

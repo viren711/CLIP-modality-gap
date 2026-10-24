@@ -173,6 +173,13 @@ IMPORTANT NOTE ON WHAT A SHIFT CAN CHANGE
       (Approach 04-C). Plan the evaluation so these are measured.
     - Report the per-caption spread of <y, Delta_hat> as a diagnostic:
       the larger it is, the more a shift can change rankings.
+  UPDATE (2026-10-23, measured - see plan.txt): the algebra holds (with no
+  re-normalisation, accuracy is exactly unchanged), but the re-normalisation
+  effect is LARGE in practice. COCO-Order drops from 0.47 to 0.24 (CLIP) and
+  from 0.83 to 0.50 (NegCLIP) when the gap is closed, because word-shuffled
+  captions sit further along the gap direction than true captions.
+  VG-Relation barely moves. So "expect little change" was wrong for
+  order-type negatives.
 
 
 5. APPROACH 03 - CONTROL (isolate hard-negative training)

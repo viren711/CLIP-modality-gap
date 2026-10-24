@@ -9,6 +9,7 @@ import os
 
 import numpy as np
 import torch
+from open_clip.transformer import text_global_pool
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -31,19 +32,49 @@ class _Images(Dataset):
         return self.preprocess(img)
 
 
+def _device(model):
+    return next(model.parameters()).device
+
+
 @torch.no_grad()
 def encode_images(model, preprocess, specs, batch_size=128, workers=4):
-    loader = DataLoader(_Images(specs, preprocess), batch_size=batch_size, num_workers=workers)
-    out = [model.encode_image(x).float().numpy() for x in tqdm(loader, desc="images", mininterval=30)]
+    dev = _device(model)
+    loader = DataLoader(_Images(specs, preprocess), batch_size=batch_size, num_workers=workers,
+                        pin_memory=dev.type == "cuda")
+    out = [model.encode_image(x.to(dev, non_blocking=True)).float().cpu().numpy()
+           for x in tqdm(loader, desc="images", mininterval=30)]
     return l2n(np.concatenate(out))
 
 
 @torch.no_grad()
-def encode_texts(model, tokenizer, texts, batch_size=512):
-    out = []
+def _encode_text_trimmed(model, tokens):
+    """Same as open_clip CLIP.encode_text, but only over the first L positions.
+
+    Captions are ~15 tokens but padded to 77. CLIP's text transformer is
+    causal and pools at the EOT token, so the padding after EOT never
+    affects the output; dropping it gives identical embeddings, ~4x faster
+    on CPU. (Checked against model.encode_text in tests.)
+    """
+    L = int((tokens != 0).sum(1).max())  # pad id is 0
+    tokens = tokens[:, :L]
+    cast_dtype = model.transformer.get_cast_dtype()
+    x = model.token_embedding(tokens).to(cast_dtype) + model.positional_embedding[:L].to(cast_dtype)
+    x = model.transformer(x, attn_mask=model.attn_mask[:L, :L])
+    x = model.ln_final(x)
+    x = text_global_pool(x, tokens, model.text_pool_type, eos_token_id=getattr(model, "text_eos_id", None))
+    return x @ model.text_projection if not isinstance(model.text_projection, torch.nn.Linear) else model.text_projection(x)
+
+
+@torch.no_grad()
+def encode_texts(model, tokenizer, texts, batch_size=256):
+    dev = _device(model)
+    tokens = tokenizer(texts)
+    order = np.argsort((tokens != 0).sum(1).numpy(), kind="stable")  # batch similar lengths together
+    out = np.empty((len(texts), model.text_projection.shape[1]), dtype=np.float32)
     for i in tqdm(range(0, len(texts), batch_size), desc="texts", mininterval=30):
-        out.append(model.encode_text(tokenizer(texts[i:i + batch_size])).float().numpy())
-    return l2n(np.concatenate(out))
+        idx = order[i:i + batch_size]
+        out[idx] = _encode_text_trimmed(model, tokens[idx].to(dev)).float().cpu().numpy()
+    return l2n(out)
 
 
 def fingerprint(bench):
@@ -59,7 +90,7 @@ def cache_path(model_name, bench_name):
     return os.path.join(EMB_DIR, model_name, f"{bench_name}.npz")
 
 
-def get_embeddings(model_name, bench, model=None, preprocess=None, tokenizer=None):
+def get_embeddings(model_name, bench, model=None, preprocess=None, tokenizer=None, workers=4):
     """Load cached embeddings, or compute them (model/preprocess/tokenizer required)."""
     path = cache_path(model_name, bench["name"])
     fp = fingerprint(bench)
@@ -70,7 +101,7 @@ def get_embeddings(model_name, bench, model=None, preprocess=None, tokenizer=Non
         print(f"{path} is stale (benchmark changed), recomputing")
     if model is None:
         raise FileNotFoundError(f"No cached embeddings at {path}; run scripts/embed_all.py first")
-    img = encode_images(model, preprocess, bench["images"])
+    img = encode_images(model, preprocess, bench["images"], workers=workers)
     txt = encode_texts(model, tokenizer, bench["texts"])
     scale = float(model.logit_scale.exp())
     os.makedirs(os.path.dirname(path), exist_ok=True)

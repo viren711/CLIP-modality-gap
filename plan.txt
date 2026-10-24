@@ -1,0 +1,584 @@
+CS 725 PROJECT - WORK LOG AND PLAN (MID-PROJECT EVALUATION)
+Does closing the modality gap help hard-negative-trained CLIP?
+===========================================================================
+This file records what was set up, every decision and the reason for it,
+and what is left. Newest status is in Section 9.
+
+
+1. MID-PROJECT TARGETS (from the proposal)
+---------------------------------------------------------------------------
+  [T1] Modality gap measured for OpenCLIP and NegCLIP
+  [T2] Orthogonal shift implemented, with first results on baseline OpenCLIP
+  [T3] Evaluation pipeline running on a compositionality benchmark
+Scope for now: base CLIP (OpenAI ViT-B/32 via OpenCLIP) and NegCLIP. The
+CLIP-FT control (fine-tuned without hard negatives) is prepared for but not
+trained yet (Section 8).
+
+
+2. MACHINE CONSTRAINTS AND HOW THEY SHAPED THE SETUP
+---------------------------------------------------------------------------
+  - No GPU (no nvidia-smi). 6 physical cores / 12 threads, 14 GB RAM.
+    -> Everything is inference-only on CPU. All gap shifts are applied
+       AFTER encoding, so each model encodes each dataset exactly once and
+       the embeddings are cached (results/embeddings/<model>/<bench>.npz).
+       Every shift / noise experiment afterwards is a numpy operation that
+       takes seconds.
+    -> CLIP-FT training is NOT possible on this machine (needs a GPU:
+       Colab / department server). See Section 8.
+  - Disk: only ~18 GB free (92% full).
+    -> We do not store the 6.2 GB val2014.zip (see 3c).
+  - Network: ~0.3-2 MB/s to the COCO server.
+  - System Python 3.12 lacks ensurepip (python3-venv not installed, no
+    sudo used). -> venv created with `python3 -m venv --without-pip .venv`
+    and pip bootstrapped with get-pip.py. Torch is the CPU build.
+
+
+3. DATA - WHAT IS DOWNLOADED AND WHY  (scripts/download_data.sh)
+---------------------------------------------------------------------------
+The script is resumable: every step is skipped if its output exists, and
+downloads go to *.part and are renamed only on success.
+
+  3a. COCO 2014 caption annotations (annotations_trainval2014.zip, 241 MB)
+      Only captions_train2014.json and captions_val2014.json are kept
+      (instances / keypoints are not needed); the zip is deleted.
+      -> data/coco/annotations/
+
+  3b. Karpathy splits (coco_karpathy_{train,val,test}.json, BLIP format,
+      from the same URLs the ARO repo uses). 113,287 / 5,000 / 5,000
+      images with ~5 captions each. The ARO COCO-Order task is defined on
+      the Karpathy test split, so we use the same split everywhere.
+      -> data/coco/
+
+  3c. COCO val2014 images - ONLY the 10k Karpathy val + test images.
+      Karpathy val/test are drawn from val2014. Instead of downloading the
+      whole 6.2 GB zip (40k images) we read the zip's central directory
+      with HTTP range requests (the COCO S3 server supports them) and pull
+      only the 10k needed members, 16 parallel connections
+      (scripts/fetch_karpathy_images.py, uses the `remotezip` package).
+      ~1.6 GB instead of 6.2 GB, nothing extra on disk. Re-runnable: images
+      already on disk are skipped.
+      -> data/coco/val2014/  (10,000 jpgs)
+      The 2014 *train* images (13 GB) are NOT downloaded: they are only
+      needed for CLIP-FT training, which happens on a GPU machine later.
+      The 2017 val images (SugarCrepe) are not downloaded, as agreed.
+
+  3d. ARO VG-Relation + VG-Attribution (Yuksekgonul et al. 2023)
+      Annotation jsons + a ~1 GB image zip (a subset of GQA / Visual
+      Genome), from the Google Drive IDs hard-coded in the ARO repo
+      (github.com/mertyg/vision-language-models-are-bows).
+      -> data/aro/
+
+  3e. NegCLIP checkpoint (ViT-B/32), Google Drive ID from the ARO repo
+      (model_zoo/__init__.py). The release is a 1.8 GB training checkpoint
+      (run name "mscoco_all_neg_all_bs256_1e-6_unlocked", epoch index 4 =
+      5th epoch -> batch 256, LR 1e-6; useful for matching CLIP-FT).
+      It also stores optimizer / AMP-scaler state with pickled numpy
+      scalars, so torch.load(weights_only=True) refuses it. Instead of
+      weights_only=False (would execute arbitrary pickle code), we allow
+      only the one numpy scalar type, keep the 302 model tensors and save
+      them as checkpoints/negclip_state_dict.pt (~600 MB)
+      (scripts/convert_negclip.py). The original .pth is then deleted to
+      save disk (re-downloadable). Loads cleanly in OpenCLIP 3.3; logit
+      scale 100 (same as CLIP); mean relative weight change vs CLIP 0.25%
+      (max 1.0%), as expected for LR 1e-6 fine-tuning.
+      -> checkpoints/negclip_state_dict.pt
+
+  3f. NegCLIP train / valid split files (train_neg_clip.tsv,
+      valid_neg_clip.tsv) from the ARO repo's temp_data/ (step 6 of the
+      download script, raw.githubusercontent.com).
+      -> data/negclip/
+      Used for the overlap check (Section 4) and, later, to train CLIP-FT
+      on EXACTLY the same images as NegCLIP (just ignoring the negatives).
+
+
+4. LEAKAGE CHECK  (scripts/check_overlap.py)  - DONE
+---------------------------------------------------------------------------
+NegCLIP's training file contains COCO *val2014* images, i.e. it was trained
+on Karpathy train + "restval". Result of the check:
+    Karpathy train (113,287 imgs) & NegCLIP train : 109,468 shared
+    Karpathy val   (5,000 imgs)   & NegCLIP train : 0
+    Karpathy test  (5,000 imgs)   & NegCLIP train : 0
+    Karpathy val   & NegCLIP valid                : 4,839 shared
+=> Karpathy val and test were never trained on. Karpathy val WAS NegCLIP's
+   validation set (used to pick its learning rate / checkpoint), so it is
+   not perfectly "unseen", but no gradient step used it.
+Decision: fit the gap vector on Karpathy val, report all evaluations on
+Karpathy test (and ARO). This keeps fitting and evaluation separate.
+Side note: NegCLIP's training file has ONE caption per image (109,468 rows
+= 109,468 unique images). CLIP-FT must use the same file to be a fair
+control.
+
+
+5. CODE  (src/ and scripts/)
+---------------------------------------------------------------------------
+5a. Models (src/models.py)
+    clip    : OpenCLIP "ViT-B-32-quickgelu", pretrained="openai"
+    negclip : same architecture, weights from checkpoints/negclip.pth
+    ft_*    : our fine-tuned grid (Section 8), checkpoints/<name>.pt
+    Decision: QuickGELU for every model. The OpenAI weights were trained
+    with QuickGELU and NegCLIP was fine-tuned from them. The ARO repo
+    loads NegCLIP as plain "ViT-B-32" (standard GELU), which does not
+    match training. We check this by reproducing the paper's NegCLIP ARO
+    numbers. If our numbers are off, also try arch="ViT-B-32" (load_model
+    has an `arch` override).
+
+5b. Benchmarks in one format (src/data.py)
+    Each benchmark = list of unique images (path, optional crop box) +
+    list of unique captions + index arrays (test case -> image, test case
+    -> caption options, which option is correct). This lets one cached
+    embedding file serve every experiment, and de-duplicates repeated
+    captions/crops (fewer encodes on CPU).
+      coco_val / coco_test : Karpathy splits, ~5 captions/image, captions
+                             cleaned with the BLIP/ARO pre_caption.
+      vg_relation          : 23,937 cases, crop to the relation bbox,
+                             [false, true] caption, group = relation name.
+      vg_attribution       : 28,748 cases, same, group = attribute pair.
+      coco_order           : each Karpathy-test caption vs 4 word-order
+                             perturbations (shuffle nouns+adjs, shuffle
+                             everything else, shuffle within trigrams,
+                             shuffle trigrams) - same functions as the ARO
+                             repo (spaCy + nltk).
+    Decision: the ARO repo re-draws the COCO-Order perturbations at random
+    on every load (no seed). We draw them once with seed 0 and cache them
+    (data/aro/coco_order_test_seed0.json), so every model and every shift
+    is scored on the exact same negatives.
+
+5c. Encoding (src/embed.py)
+    - Image encoding: DataLoader (4 workers), batch 128, ~25 img/s on CPU.
+    - Text encoding speed-up (exact): captions are ~15 tokens but padded to
+      77. CLIP's text transformer is causal and pools at the EOT token, so
+      positions after the longest caption in a batch never affect the
+      output. We run the same layers on only the first L positions (L =
+      longest caption in the batch), with captions sorted by length.
+      Verified against model.encode_text on 1,000 COCO captions: max abs
+      difference 3e-7, min cosine 1.000000; speed 149 vs 31 captions/s
+      (~5x).
+    - Cache = L2-normalised float32 image and text matrices + logit scale +
+      a fingerprint of the image/caption lists, so a changed benchmark
+      triggers re-encoding instead of silently using stale embeddings.
+    - Estimated encode cost per model: ~62k images/crops (~40 min) +
+      ~280k captions (~30 min) => ~1.2 h per model, ~2.5 h for both.
+
+5d. Approach 01 - gap metrics (src/gap.py: gap_metrics; scripts/measure_gap.py)
+    For each model on coco_val and coco_test:
+      gap_norm          ||mean(img) - mean(txt)||  (Liang et al.; 0.82 for CLIP)
+      gap_norm_median   same with coordinate-wise medians
+      centroid_cos      cosine between the two centroids
+      *_centroid_norm   norm of each modality's centroid (near 1 = narrow cone)
+      proj_*_mean/std   coordinate of each embedding along the unit gap
+                        direction u = Delta/||Delta||
+      var_frac_img/txt  fraction of within-modality variance along u.
+                        A random direction gets 1/512 = 0.002. Close to
+                        0.002 => the gap is ~orthogonal to how embeddings
+                        vary (the Chowers et al. condition). This number
+                        also predicts how much a shift CAN change rankings
+                        (see approaches.txt, Section 4 note).
+      matched_cos / unmatched_cos   mean cosine of true / random pairs
+      alignment         E||x - y||^2 over matched pairs (Wang & Isola)
+      uniformity_*      log E exp(-2||u - v||^2) per modality (Wang & Isola)
+      linear_sep_acc    logistic-regression accuracy of image vs text
+    Output: results/gap_metrics.csv and results/figures/pca_<split>.png
+    (2-D PCA of both modalities, one panel per model, as in Liang Fig. 1).
+
+5e. Approach 02 - shifts (src/gap.py: apply_shift, alpha_for_target_gap)
+    Delta is fitted on coco_val and applied unchanged to every benchmark.
+      mode "text": y' = Normalize(y + alpha * Delta), images untouched.
+                   Moves one modality toward the other along the global gap
+                   vector (the shift described for Chowers et al.).
+      mode "both": x' = Normalize(x - alpha/2 * Delta),
+                   y' = Normalize(y + alpha/2 * Delta)  (symmetric version of
+                   Liang et al.'s shift experiment).
+      alpha = 1 closes the gap before re-normalisation, alpha < 0 widens it.
+      stat "mean" / "median": Delta from means or coordinate-wise medians.
+      Two kinds of settings:
+        alpha sweep : alpha in {-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1.0}
+        target gap  : for each model, solve alpha (bisection) so the
+                      remaining gap on coco_val = {0.6, 0.4, 0.2, 0.1}.
+                      This is the "shift by a set margin" from the proposal,
+                      and lets CLIP and NegCLIP be compared at EQUAL
+                      remaining gap even if their original gaps differ.
+    OPEN: the exact definition of the "orthogonal shift" in Chowers et al.
+    (2026) must be checked against the paper (not yet in papers/). If it
+    is different (e.g. shift along the part of Delta orthogonal to the
+    embedding subspace), add it as a third mode in apply_shift.
+
+5f. Approach 04 - evaluation (src/evaluate.py; scripts/shift_eval.py)
+      ARO (vg_relation, vg_attribution, coco_order):
+        acc       - micro accuracy (true caption scored highest)
+        macro_acc - mean over relations / attribute pairs (VG-A: pairs with
+                    >= 25 cases), as reported in the ARO paper
+        margin    - score(true) - best score(wrong): moves even when the
+                    accuracy does not
+      COCO Karpathy test retrieval: i2t / t2i Recall@1/5/10.
+      Robustness: Gaussian noise of norm ~sigma added to both image and
+        text embeddings after the shift, then re-normalised;
+        sigma in {0, 0.25, 0.5, 1.0}, 3 seeds averaged.
+    Output: results/shift_eval.csv, one row per
+      model x stat x mode x setting x benchmark x sigma.
+    Plots (scripts/plot_shift.py): metric vs remaining gap, one line per
+      model, one column per sigma -> results/figures/shift_<mode>_<stat>.png
+
+5g. Smoke test (200 Karpathy-test images, CLIP), already run:
+      gap_norm 0.829 (Liang et al.: 0.82)  -> measurement is correct
+      linear_sep_acc 1.0  (modalities perfectly separable)
+      var_frac along gap: img 0.004, txt 0.008 vs random 0.002
+      i2t R@1 0.905, t2i R@1 0.773 (on only 200 images, so high)
+      text shift alpha 0 / 0.5 / 1.0 -> gap 0.83 / 0.42 / 0.02,
+        t2i R@1 0.773 / 0.697 / 0.576, i2t R@1 0.905 / 0.875 / 0.780
+      (early sign that naive closing hurts retrieval for base CLIP, as
+       Liang et al. found; to be confirmed on the full 5k.)
+
+
+6. HOW TO RUN
+---------------------------------------------------------------------------
+  bash scripts/download_data.sh
+  bash scripts/run_midterm.sh        # check_overlap -> embed_all ->
+                                     # measure_gap -> shift_eval -> plots
+  Individual steps take --models / --benchmarks arguments, see each
+  script's docstring.
+
+
+7. ORDER OF WORK FOR THE MID-PROJECT PRESENTATION
+---------------------------------------------------------------------------
+  [x] Data download script (resumable, disk-aware)
+  [x] Overlap / leakage check
+  [x] Benchmarks, encoding with cache, gap metrics, shifts, evaluation code
+  [x] Smoke test on a 200-image subset
+  [x] Downloads finish (COCO images, ARO, NegCLIP checkpoint)
+  [x] Sanity check A: CLIP ARO numbers vs paper (VG-R ~0.59-0.63,
+      VG-A ~0.62, COCO-Order ~0.46)
+  [x] Sanity check B: NegCLIP ARO numbers vs paper (VG-R 0.81,
+      VG-A 0.71, COCO-Order 0.86) -> confirms checkpoint + QuickGELU choice
+  [x] embed_all for clip + negclip                       (T1, T3)
+  [x] measure_gap: table + PCA figure                     (T1)
+  [x] shift_eval + plots, first on clip, then negclip     (T2, T3)
+  [ ] Slides: gap table, PCA, metric-vs-gap curves (clean vs noisy),
+      the re-normalisation mechanism (why COCO-Order collapses but
+      VG-Relation does not), the QuickGELU/GELU footnote
+  [x] GPU package for the fine-tuned controls (Section 8)
+  [ ] Run run_gpu.sh on the GPU server, bring back results_gpu.tar.gz
+
+
+8. GPU PACKAGE: FINE-TUNED CONTROLS (prepared, to be run on the GPU server)
+---------------------------------------------------------------------------
+Why: the CPU machine cannot fine-tune. The user has a GPU server, so the
+control models are trained there, and the whole evaluation pipeline is
+re-run there for all models.
+
+8a. Design: a 2x2 grid instead of a single CLIP-FT control
+    NegCLIP differs from CLIP in THREE ways: COCO fine-tuning, hard
+    negative images (each image's 3-NN neighbour added to the batch) and
+    hard negative captions. A single CLIP-FT control only removes both
+    negative types at once. The 2x2 grid separates them:
+        ft_plain    no hard images, no hard captions  (= CLIP-FT control)
+        ft_hardimg  hard images only (batch composition only)
+        ft_hardcap  hard captions only
+        ft_negclip  both (our NegCLIP reproduction)
+    ft_negclip vs the released negclip checks the reproduction. ft_hardimg
+    vs ft_negclip isolates hard-negative CAPTIONS at an identical image-
+    side batch (2N images), which is the cleanest test of "hard-negative
+    training" for the research question.
+
+8b. scripts/train_finetune.py - one-file re-implementation of the NegCLIP
+    fork (github.com/vinid/neg_clip), checked line by line against its
+    data.py / train.py / loss.py / main.py / scheduler.py:
+      - data: data/negclip/train_neg_clip.tsv (109,468 images, 1 caption
+        each; 80,041 from train2014 + 29,427 from val2014 restval).
+        Per epoch, a random hard caption (from 1-6 per image) and a random
+        hard image (from 3 NN) are drawn for each item, as in the fork.
+      - batch layout and loss exactly as the fork:
+          images = [I, I_hard]   texts = [T, T(I_hard), T_neg, T_neg(I_hard)]
+          loss = (CE(img x all texts) + CE(first len(img) texts x img)) / 2
+        i.e. hard captions only act as image->text negatives.
+      - recipe: batch 256, 5 epochs, AdamW betas (0.9, 0.98) eps 1e-6,
+        wd 0.2 except gains/biases/logit scale, cosine LR, 50 warmup steps,
+        fp16 AMP + GradScaler, learnable logit scale clamped to 100,
+        open_clip train transform (RandomResizedCrop scale 0.9-1.0),
+        OpenAI ViT-B/32 QuickGELU init, drop_last, seeded.
+      - after every epoch (and at epoch 0): COCO-val (valid_neg_clip.tsv,
+        4,839 pairs) i2t/t2i R@1/5/10, ||gap||, matched cosine, logit
+        scale -> runs/<run>/log.jsonl. So we also get HOW THE GAP CHANGES
+        DURING FINE-TUNING for each config, for free.
+      - difference from the fork: our validation uses plain 1:1 pairs
+        (the fork also mixes hard images into validation). Only used for
+        LR selection.
+    CPU debug run done locally (batch 4, 3 steps, each config): batch
+    layouts 4x4 / 8x8 / 4x8 / 8x16 = as intended; loss, optimizer,
+    validation, checkpoint export, select_best and loading the result
+    through src/models.py all work. (Even 3 steps at LR 1e-5 raised the
+    val gap 0.84 -> 0.87-0.90.)
+
+8c. scripts/gpu/run_sweep.py - 4 configs x LR {1e-5, 5e-6, 1e-6} x seeds,
+    one job per GPU in parallel (GPUS="0 1 ..."), resumable.
+    scripts/gpu/select_best.py - best LR per config by final-epoch val
+    mean R@1 (as in the paper) -> checkpoints/<config>.pt; writes
+    results/finetune_runs.csv (every run x epoch, incl. gap) and
+    results/finetune_selection.json.
+    src/models.py now loads any checkpoints/<name>.pt by name.
+    src/embed.py / embed_all.py now run on GPU (fp32, TF32 off, so GPU
+    and CPU embeddings agree).
+
+8d. run_gpu.sh - the single command file (package root):
+      0 venv (.venv-gpu, CUDA torch from PyPI) or PY=<existing python>
+      1 GPU check, env dump (nvidia-smi, pip freeze)
+      2 full COCO 2014 train + val images (scripts/gpu/prepare_coco_full.sh,
+        19 GB download on the server; needs internet there)
+      1b smoke test: 20 steps of ft_negclip at batch 256 (catches OOM)
+      3 leakage check   4 sweep   5 LR selection
+      6 encode all benchmarks with clip, negclip, ft_plain, ft_hardimg,
+        ft_hardcap, ft_negclip
+      7 measure_gap, shift_eval, plot_shift for all 6 models
+      8 results_gpu.tar.gz (csvs, figures, run logs, env info, and the
+        embeddings unless INCLUDE_EMB=0; ~3 GB with embeddings - they let
+        us redo any shift analysis locally on CPU without the GPU)
+    Options: GPUS, LRS, SEEDS, PY, INCLUDE_EMB.
+    Rough cost: 12 runs x 5 epochs of 109k pairs at ViT-B/32 -> minutes
+    per epoch on a modern GPU; ~1-3 h for the sweep on one GPU.
+
+8e. scripts/make_gpu_package.sh -> dist/cs725_gpu_package.zip (3.0 GB):
+    code, all local data (10k COCO images, ARO, annotations, Karpathy and
+    NegCLIP splits, COCO-Order cache), NegCLIP weights. Zip integrity
+    tested. Not included: COCO train2014 / rest of val2014 (downloaded on
+    the server), our CPU embeddings (re-computed on GPU = cross-check).
+    torch removed from requirements.txt (installed per machine).
+    Rebuild the zip after any code change.
+
+8f. Still open after the GPU run
+  - Hard positives (Kamath et al. 2024) and SugarCrepe benchmarks.
+  - Flickr30k as an out-of-domain retrieval set.
+  - Read Chowers et al. 2026 and align the orthogonal-shift definition.
+
+
+9. STATUS LOG
+---------------------------------------------------------------------------
+  2026-10-23  Setup, code, overlap check, smoke test done. Downloads
+              running (COCO image fetch at ~5-10 img/s).
+  2026-10-23  COCO image fetch: 9,998/10,000 on first pass (2 transient
+              HTTP failures), re-run fetched the last 2 -> all 10,000
+              present. Added step 6 (NegCLIP split tsv from GitHub) to
+              download_data.sh. CLIP encoding of coco_val / coco_test /
+              coco_order started (log: logs/embed_clip_coco.log) while
+              ARO + NegCLIP checkpoint download from Google Drive.
+  2026-10-23  All downloads finished (data/ = 2.7 GB; 6,603 VG images).
+              NegCLIP checkpoint converted to weights-only and verified.
+              Encoding queue: clip coco_* -> clip vg_* -> negclip all
+              (logs/embed_*.log). Disk: 12 GB free.
+  2026-10-23  CLIP COCO encoding done (coco_val 336 s, coco_test 325 s,
+              coco_order 803 s). SANITY CHECK A (partial) PASSED:
+                COCO 5k test  i2t R@1 0.502 / t2i R@1 0.302
+                  (published CLIP ViT-B/32 zero-shot: 50.2 / 30.4)
+                COCO-Order acc 0.472 (ARO paper: 0.46)
+                ||gap|| on full Karpathy test 0.832 (Liang et al.: 0.82)
+              => images, captions, pre_caption, QuickGELU arch, trimmed
+                 text encoder and metric code all reproduce known numbers.
+  2026-10-23  Found a bug in my job queue (pgrep matched its own command
+              line, so the queued encode never started); restarted CLIP
+              VG + NegCLIP encoding directly (~20 min lost).
+  2026-10-23  GPU package built (Section 8): 2x2 fine-tuning grid,
+              training script tested on CPU, dist/cs725_gpu_package.zip.
+  2026-10-23  All embeddings cached for clip + negclip (5 benchmarks each;
+              VG-R 13,144 crops / 26,706 captions, VG-A 12,279 / 52,146,
+              coco_order 5,000 / 119,724; ~10-13 min per benchmark on CPU).
+
+              SANITY CHECK B - ARO (macro acc for VG, acc for COCO-Order):
+                                VG-Rel   VG-Attr  COCO-Order  COCO i2t/t2i R@1
+                clip   (ours)   0.638    0.632    0.472       0.502 / 0.302
+                clip   (paper)  0.59-63  0.62     0.46        50.2 / 30.4
+                negclip(ours)   0.838    0.721    0.825       0.593 / 0.448
+                negclip(paper)  0.81     0.71     0.86
+              Everything matches except NegCLIP COCO-Order (-3.5 pts).
+
+              FINDING - activation mismatch in the ARO repo's evaluation:
+              the fork trains from OpenAI weights through
+              build_model_from_openai_state_dict(quick_gelu=True), i.e. NegCLIP
+              was TRAINED with QuickGELU, but the ARO repo EVALUATES it as
+              plain "ViT-B-32" = standard GELU. On a 5,001-case COCO-Order
+              subset: QuickGELU 0.817, GELU 0.869 (paper 0.86). So the paper's
+              number is reproduced only with the mismatched activation.
+              Decision: QuickGELU (the trained model) stays primary;
+              "negclip_gelu" added to the registry and to run_gpu.sh so the
+              GPU run evaluates it fully, for a footnote / robustness check.
+
+              APPROACH 01 RESULT (results/gap_metrics.csv, figures/pca_*.png):
+                                      clip     negclip   (Karpathy test)
+                ||gap|| (mean)        0.832    0.855
+                ||gap|| (median)      0.846    0.865
+                centroid cosine       0.304    0.184
+                txt centroid norm     0.723    0.657    (text cone wider)
+                img centroid norm     0.686    0.681
+                uniformity txt        -1.815   -2.159   (text more spread)
+                uniformity img        -2.034   -2.074
+                matched / unmatched   0.303 / 0.151   0.292 / 0.083
+                var frac along gap    img .0039 txt .0073 | img .0025 txt .0075
+                                      (random direction .0020)
+                linear separability   1.000    1.000
+              Reading: hard-negative fine-tuning does NOT shrink the gap; it
+              slightly widens it and mostly reshapes the TEXT side (wider
+              cone, more uniform, unmatched pairs pushed to ~0.08 cosine).
+              Gap direction carries only ~2-4x the variance of a random
+              direction -> near-orthogonal, as Chowers et al. describe; so
+              post-hoc shifts should mostly preserve image->text rankings.
+              Val and test agree to 3 decimals.
+
+  2026-10-23  APPROACH 02 + 04 RESULTS - clip + negclip (results/shift_eval.csv,
+              1,344 rows; figures/shift_{text,both}_{mean,median}.png; CPU
+              run ~1.7 h). Delta fitted on Karpathy val, evaluated on test/ARO.
+
+              Clean (sigma = 0), text shift, mean Delta:
+                                 alpha:  -0.5   0      0.5    1.0
+                remaining gap (clip)     1.08   0.83   0.43   0.02
+                clip    COCO-Order       0.492  0.472  0.341  0.241
+                        VG-Rel (macro)   0.631  0.638  0.659  0.658
+                        VG-Attr (macro)  0.633  0.632  0.620  0.601
+                        i2t / t2i R@1    .497/.217  .502/.302  .438/.258  .310/.178
+                negclip COCO-Order       0.832  0.825  0.709  0.498
+                        VG-Rel (macro)   0.837  0.838  0.844  0.806
+                        VG-Attr (macro)  0.721  0.721  0.699  0.663
+                        i2t / t2i R@1    .600/.389  .593/.448  .509/.413  .385/.338
+              -> Clean: the original gap is (near) optimal; closing it hurts
+                 retrieval and COCO-Order a lot, VG-Attr a little, and
+                 slightly HELPS VG-Relation (both models, up to ~+2 pts).
+                 Widening slightly helps i2t R@1 and COCO-Order.
+
+              Under embedding noise: the optimum moves to a SMALLER gap
+              (~0.4-0.6 remaining) for retrieval, COCO-Order, VG-R, VG-A, in
+              both models, e.g. t2i R@1 at sigma 0.5: clip 0.157 -> 0.160,
+              negclip 0.277 -> 0.288 at alpha 0.5; widening the gap always
+              makes noise robustness worse. So partially closing the gap
+              trades clean accuracy for robustness, as Chowers et al.
+              report for CLIP - and it holds for NegCLIP too.
+              Caveat: "relative to clean" robustness flatters fully-closed
+              settings because their clean accuracy is already near chance
+              (COCO-Order chance 0.2, VG 0.5) - compare absolute numbers.
+
+              text vs both modes, mean vs median Delta: same shape; text-only
+              shift hurts less than the symmetric one at equal remaining gap
+              (e.g. negclip COCO-Order at gap 0.4: text 0.694, both 0.627);
+              median vs mean differ by <= 0.01.
+
+              WHY THE SHIFT CHANGES IMAGE->TEXT RANKINGS (approaches.txt
+              Section 4 predicted it could only act through re-normalisation):
+                - shift WITHOUT re-normalisation: accuracy exactly unchanged
+                  (clip COCO-Order 0.472 -> 0.472, negclip 0.825 -> 0.825).
+                - WITH re-normalisation, score' = (x.y + a x.Delta)/||y + a Delta||;
+                  x.Delta is a large positive constant, and ||y + a Delta||
+                  is smaller for captions further on the text side, so those
+                  captions get boosted.
+                - Word-shuffled COCO-Order negatives sit further on the text
+                  side than the true caption: in 74% of cases for clip and
+                  88% for negclip. Closing the gap therefore favours the
+                  shuffled captions -> COCO-Order collapses.
+                - VG-Relation negatives (grammatical subject/object swaps)
+                  have the same projection as the true caption (~50/50), so
+                  VG-R is barely affected.
+              => The gap direction partly encodes caption "naturalness",
+                 and hard-negative training strengthens that (74% -> 88%).
+              Idea for next round: a re-normalisation-free (or exactly
+              orthogonal) shift as a control that keeps i2t rankings fixed.
+
+              MID-PROJECT TARGETS: T1 done, T2 done (on clip AND negclip),
+              T3 done (ARO VG-R, VG-A, COCO-Order + COCO retrieval).
+
+  2026-10-23  GPU RUN ON gpu1.cse.iitb.ac.in (user virenmehta)
+              - Server has internet (COCO, PyPI, PyTorch reachable), so the
+                COCO images are downloaded there; no local data_725 needed.
+              - Home quota full (28.7 of 27 GB soft / 30 GB hard; ANN-search
+                = 28 GB) -> everything lives in /tmp/cs725 (chmod 700, root
+                disk, 70 GB free). Nothing written to the home directory:
+                the run uses HOME=/tmp/cs725/home and all caches (pip, uv,
+                HF/open_clip weights, nltk, matplotlib) inside /tmp/cs725.
+                /tmp can be wiped on reboot -> copy results back promptly.
+              - System Python is 3.9 (too old for numpy 2.5 / pandas 3.1 /
+                torch 2.14). Used uv (binary from GitHub release, no
+                installer) to get Python 3.12.15 in /tmp/cs725/tools and a
+                venv /tmp/cs725/env. Driver is CUDA 12.6 -> torch
+                2.14.1+cu126 (same torch version as the CPU runs).
+              - GPUs: 3x RTX A6000 + 1x RTX 6000 Ada (48 GB each). nvidia-smi
+                GPU 2 was in use by another user -> GPUS="0 1 3" with
+                CUDA_DEVICE_ORDER=PCI_BUS_ID (torch's default order puts the
+                Ada first, which would have shifted the indices onto GPU 2).
+              - Package checksum verified after transfer (md5 match, 75 MB/s).
+              - Bug fixed: prepare_coco_full.sh died silently under
+                `set -o pipefail` because `find` on the not-yet-existing
+                train2014/ dir returns 1. Now `|| true`.
+              - run_gpu.sh: caches kept inside the package dir, TORCH_INDEX
+                option, PRUNE_RUNS=1 deletes non-selected run checkpoints.
+              - Launch: /tmp/cs725/launch.sh (detached, setsid). Log:
+                /tmp/cs725/run.log. Stop: kill -TERM -- -$(cat /tmp/cs725/run.pgid)
+
+  2026-10-24  GPU RUN COMPLETED (server times): sweep 14:49-17:00 (12 runs,
+              3 GPUs; epoch 148 s plain / 197 hardcap / 282 hardimg / 378
+              negclip), encode 9 min, shift_eval 7 h (CPU-bound), packed
+              00:11. results_gpu.tar.gz (3.6 GB, md5 verified) copied to
+              gpu_results/ (embeddings left inside the tarball - local disk
+              has 3.8 GB free). Batch layouts on GPU as designed: 256x256,
+              512x512, 256x512, 512x1024. CPU vs GPU clean scores for
+              clip/negclip agree to 0.0002.
+
+              LR SELECTION (final-epoch val mean R@1):
+                ft_plain 5e-6 (0.457) | ft_hardcap 5e-6 (0.445)
+                ft_hardimg 1e-6 (0.444) | ft_negclip 1e-6 (0.437)
+              ft_negclip picked 1e-6 like the released NegCLIP. 8 non-selected
+              checkpoints pruned (logs kept).
+
+              GAP DURING FINE-TUNING (val, results/finetune_runs.csv):
+                                LR 1e-6  LR 5e-6  LR 1e-5   (start 0.823)
+                ft_plain         0.886    0.775    0.733
+                ft_hardcap       0.880    0.758    0.708
+                ft_hardimg       0.883    0.652    0.571
+                ft_negclip       0.877    0.641    0.555
+              - Every run first WIDENS the gap (0.82 -> 0.90-0.96 after epoch
+                1), then it shrinks over epochs 2-5; more with higher LR.
+              - At matched LR, hard-negative CAPTIONS barely move the gap
+                (-0.006 to -0.025); hard-negative IMAGES shrink it a lot
+                (-0.12 to -0.16 at 5e-6/1e-5). Caveat: hard images also double
+                the batch (512 vs 256 images), so "harder batch" and "bigger
+                batch" are not separated.
+
+              CLEAN BENCHMARKS (Karpathy test / ARO, no shift):
+                              COCO-Ord VG-Attr VG-Rel  i2t R@1 t2i R@1  ||gap||
+                clip           0.472   0.632   0.638   0.502   0.302   0.832
+                ft_plain       0.291   0.647   0.542   0.618   0.454   0.780
+                ft_hardimg     0.303   0.650   0.554   0.607   0.451   0.888
+                ft_hardcap     0.878   0.738   0.860   0.599   0.454   0.765
+                ft_negclip     0.838   0.725   0.840   0.597   0.449   0.883
+                negclip        0.825   0.721   0.838   0.593   0.448   0.855
+                negclip_gelu   0.868   0.705   0.811   0.561   0.412   0.903
+              - REPRODUCTION OK: ft_negclip ~ released negclip on everything.
+              - Compositionality comes from hard CAPTIONS (ft_hardcap ~
+                ft_negclip >> ft_hardimg ~ ft_plain). Plain COCO fine-tuning
+                HURTS order sensitivity (COCO-Order 0.47 -> 0.29).
+              - The gap comes from hard IMAGES / LR, not from hard captions.
+                => compositionality and the size of the gap are decoupled.
+              - negclip_gelu: +4 pts COCO-Order but -3 VG-R, -2 VG-A, -3/-4
+                retrieval vs the correct QuickGELU model.
+
+              EFFECT OF CLOSING HALF THE GAP (text shift, alpha 0 -> 0.5):
+                              COCO-Ord(clean/noisy)  VG-Rel(clean/noisy)  t2i R@1(clean/noisy)
+                clip            -.131 / -.041          +.020 / +.007        -.044 / +.004
+                ft_plain        +.007 / +.006          +.057 / +.041        -.029 / +.003
+                ft_hardimg      -.055 / -.015          +.032 / +.033        -.042 / +.014
+                ft_hardcap      -.070 / -.047          -.006 / -.003        -.024 / +.005
+                ft_negclip      -.136 / -.048          -.011 / +.014        -.039 / +.013
+                negclip         -.116 / -.043          +.007 / +.002        -.035 / +.011
+              (noisy = sigma 0.5)
+              - Closing the gap HURTS COCO-Order clean for every model that
+                is order-sensitive (hard captions), and does nothing for
+                ft_plain (which is at chance-like 0.29 anyway).
+              - It HELPS VG-Relation for models WITHOUT hard captions
+                (+0.02 to +0.06) and is neutral for models WITH them.
+              - Under noise, partial closing helps retrieval for all models,
+                slightly more for the hard-negative ones (+0.011-0.014 vs
+                +0.003-0.005).
+              ANSWER SO FAR: closing the gap does not help hard-negative-
+              trained CLIP on clean compositionality (it hurts order tasks
+              via the re-normalisation mechanism); it gives a small
+              robustness gain, slightly larger than for the controls.
+
+              CONFOUND TO FIX: the selected checkpoints differ in LR
+              (5e-6 for ft_plain/ft_hardcap, 1e-6 for ft_hardimg/ft_negclip).
+              ft_plain/ft_hardcap are much more noise-robust in the figures,
+              mostly because of the LR. Their val logs at matched LR exist,
+              but the benchmark/shift eval needs matched-LR checkpoints:
+              retrain ft_plain + ft_hardcap at 1e-6 (or all four at one LR)
+              - ~15-20 min per run on gpu1 - then re-run steps 6-7 for them.

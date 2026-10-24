@@ -1,0 +1,9 @@
+NegCLIP train: 109468 rows, 109468 unique images
+NegCLIP valid: 4839 rows, 4839 unique images
+Karpathy train (113287 images) & NegCLIP train: 109468 shared
+Karpathy train (113287 images) & NegCLIP valid: 0 shared
+Karpathy val   (5000 images) & NegCLIP train: 0 shared
+Karpathy val   (5000 images) & NegCLIP valid: 4839 shared
+Karpathy test  (5000 images) & NegCLIP train: 0 shared
+Karpathy test  (5000 images) & NegCLIP valid: 0 shared
+OK: Karpathy val/test are unseen by NegCLIP training

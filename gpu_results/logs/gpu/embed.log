@@ -1,0 +1,75 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+WARNING:huggingface_hub.utils._http:Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[clip / coco_val] 5000 images, 25010 texts
+/tmp/cs725/cs725_project/src/embed.py:106: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:820.)
+  scale = float(model.logit_scale.exp())
+[clip / coco_val] done in 11s -> /tmp/cs725/cs725_project/results/embeddings/clip/coco_val.npz (logit scale 100.0)
+[clip / coco_test] 5000 images, 25010 texts
+[clip / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/clip/coco_test.npz (logit scale 100.0)
+[clip / vg_relation] 13144 images, 26706 texts
+[clip / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/clip/vg_relation.npz (logit scale 100.0)
+[clip / vg_attribution] 12279 images, 52146 texts
+[clip / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/clip/vg_attribution.npz (logit scale 100.0)
+[clip / coco_order] 5000 images, 119724 texts
+[clip / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/clip/coco_order.npz (logit scale 100.0)
+[negclip / coco_val] 5000 images, 25010 texts
+[negclip / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/negclip/coco_val.npz (logit scale 100.0)
+[negclip / coco_test] 5000 images, 25010 texts
+[negclip / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/negclip/coco_test.npz (logit scale 100.0)
+[negclip / vg_relation] 13144 images, 26706 texts
+[negclip / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/negclip/vg_relation.npz (logit scale 100.0)
+[negclip / vg_attribution] 12279 images, 52146 texts
+[negclip / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/negclip/vg_attribution.npz (logit scale 100.0)
+[negclip / coco_order] 5000 images, 119724 texts
+[negclip / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/negclip/coco_order.npz (logit scale 100.0)
+[negclip_gelu / coco_val] 5000 images, 25010 texts
+[negclip_gelu / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/negclip_gelu/coco_val.npz (logit scale 100.0)
+[negclip_gelu / coco_test] 5000 images, 25010 texts
+[negclip_gelu / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/negclip_gelu/coco_test.npz (logit scale 100.0)
+[negclip_gelu / vg_relation] 13144 images, 26706 texts
+[negclip_gelu / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/negclip_gelu/vg_relation.npz (logit scale 100.0)
+[negclip_gelu / vg_attribution] 12279 images, 52146 texts
+[negclip_gelu / vg_attribution] done in 15s -> /tmp/cs725/cs725_project/results/embeddings/negclip_gelu/vg_attribution.npz (logit scale 100.0)
+[negclip_gelu / coco_order] 5000 images, 119724 texts
+[negclip_gelu / coco_order] done in 23s -> /tmp/cs725/cs725_project/results/embeddings/negclip_gelu/coco_order.npz (logit scale 100.0)
+[ft_plain / coco_val] 5000 images, 25010 texts
+[ft_plain / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_plain/coco_val.npz (logit scale 100.0)
+[ft_plain / coco_test] 5000 images, 25010 texts
+[ft_plain / coco_test] done in 9s -> /tmp/cs725/cs725_project/results/embeddings/ft_plain/coco_test.npz (logit scale 100.0)
+[ft_plain / vg_relation] 13144 images, 26706 texts
+[ft_plain / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/ft_plain/vg_relation.npz (logit scale 100.0)
+[ft_plain / vg_attribution] 12279 images, 52146 texts
+[ft_plain / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/ft_plain/vg_attribution.npz (logit scale 100.0)
+[ft_plain / coco_order] 5000 images, 119724 texts
+[ft_plain / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/ft_plain/coco_order.npz (logit scale 100.0)
+[ft_hardimg / coco_val] 5000 images, 25010 texts
+[ft_hardimg / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardimg/coco_val.npz (logit scale 100.0)
+[ft_hardimg / coco_test] 5000 images, 25010 texts
+[ft_hardimg / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardimg/coco_test.npz (logit scale 100.0)
+[ft_hardimg / vg_relation] 13144 images, 26706 texts
+[ft_hardimg / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardimg/vg_relation.npz (logit scale 100.0)
+[ft_hardimg / vg_attribution] 12279 images, 52146 texts
+[ft_hardimg / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardimg/vg_attribution.npz (logit scale 100.0)
+[ft_hardimg / coco_order] 5000 images, 119724 texts
+[ft_hardimg / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardimg/coco_order.npz (logit scale 100.0)
+[ft_hardcap / coco_val] 5000 images, 25010 texts
+[ft_hardcap / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardcap/coco_val.npz (logit scale 100.0)
+[ft_hardcap / coco_test] 5000 images, 25010 texts
+[ft_hardcap / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardcap/coco_test.npz (logit scale 100.0)
+[ft_hardcap / vg_relation] 13144 images, 26706 texts
+[ft_hardcap / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardcap/vg_relation.npz (logit scale 100.0)
+[ft_hardcap / vg_attribution] 12279 images, 52146 texts
+[ft_hardcap / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardcap/vg_attribution.npz (logit scale 100.0)
+[ft_hardcap / coco_order] 5000 images, 119724 texts
+[ft_hardcap / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/ft_hardcap/coco_order.npz (logit scale 100.0)
+[ft_negclip / coco_val] 5000 images, 25010 texts
+[ft_negclip / coco_val] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_negclip/coco_val.npz (logit scale 100.0)
+[ft_negclip / coco_test] 5000 images, 25010 texts
+[ft_negclip / coco_test] done in 10s -> /tmp/cs725/cs725_project/results/embeddings/ft_negclip/coco_test.npz (logit scale 100.0)
+[ft_negclip / vg_relation] 13144 images, 26706 texts
+[ft_negclip / vg_relation] done in 14s -> /tmp/cs725/cs725_project/results/embeddings/ft_negclip/vg_relation.npz (logit scale 100.0)
+[ft_negclip / vg_attribution] 12279 images, 52146 texts
+[ft_negclip / vg_attribution] done in 16s -> /tmp/cs725/cs725_project/results/embeddings/ft_negclip/vg_attribution.npz (logit scale 100.0)
+[ft_negclip / coco_order] 5000 images, 119724 texts
+[ft_negclip / coco_order] done in 24s -> /tmp/cs725/cs725_project/results/embeddings/ft_negclip/coco_order.npz (logit scale 100.0)

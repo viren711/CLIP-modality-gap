@@ -1,0 +1,25 @@
+[gpu 0] started ft_plain_lr1e-05_s0
+[gpu 1] started ft_plain_lr5e-06_s0
+[gpu 3] started ft_plain_lr1e-06_s0
+[gpu 3] finished ft_plain_lr1e-06_s0 (exit 0)
+[gpu 3] started ft_hardimg_lr1e-05_s0
+[gpu 0] finished ft_plain_lr1e-05_s0 (exit 0)
+[gpu 0] started ft_hardimg_lr5e-06_s0
+[gpu 1] finished ft_plain_lr5e-06_s0 (exit 0)
+[gpu 1] started ft_hardimg_lr1e-06_s0
+[gpu 3] finished ft_hardimg_lr1e-05_s0 (exit 0)
+[gpu 3] started ft_hardcap_lr1e-05_s0
+[gpu 1] finished ft_hardimg_lr1e-06_s0 (exit 0)
+[gpu 1] started ft_hardcap_lr5e-06_s0
+[gpu 0] finished ft_hardimg_lr5e-06_s0 (exit 0)
+[gpu 0] started ft_hardcap_lr1e-06_s0
+[gpu 3] finished ft_hardcap_lr1e-05_s0 (exit 0)
+[gpu 3] started ft_negclip_lr1e-05_s0
+[gpu 1] finished ft_hardcap_lr5e-06_s0 (exit 0)
+[gpu 1] started ft_negclip_lr5e-06_s0
+[gpu 0] finished ft_hardcap_lr1e-06_s0 (exit 0)
+[gpu 0] started ft_negclip_lr1e-06_s0
+[gpu 3] finished ft_negclip_lr1e-05_s0 (exit 0)
+[gpu 1] finished ft_negclip_lr5e-06_s0 (exit 0)
+[gpu 0] finished ft_negclip_lr1e-06_s0 (exit 0)
+sweep finished

@@ -1,0 +1,6 @@
+train2014: 0/82783 images present, downloading
+2026-10-23 14:36:48 URL:http://images.cocodataset.org/zips/train2014.zip [13510573713/13510573713] -> "/tmp/cs725/cs725_project/data/coco/train2014.zip.part" [1]
+train2014: 82783 images
+val2014: 10000/40504 images present, downloading
+2026-10-23 14:46:57 URL:http://images.cocodataset.org/zips/val2014.zip [6645013297/6645013297] -> "/tmp/cs725/cs725_project/data/coco/val2014.zip.part" [1]
+val2014: 40504 images

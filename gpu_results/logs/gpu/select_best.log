@@ -1,0 +1,12 @@
+ft_hardcap  -> lr 5e-06  val mean R@1 0.4450  gap 0.758
+ft_hardimg  -> lr 1e-06  val mean R@1 0.4440  gap 0.883
+ft_negclip  -> lr 1e-06  val mean R@1 0.4367  gap 0.877
+ft_plain    -> lr 5e-06  val mean R@1 0.4574  gap 0.775
+pruned runs/ft_hardcap_lr1e-05_s0/final.pt
+pruned runs/ft_hardcap_lr1e-06_s0/final.pt
+pruned runs/ft_hardimg_lr1e-05_s0/final.pt
+pruned runs/ft_hardimg_lr5e-06_s0/final.pt
+pruned runs/ft_negclip_lr1e-05_s0/final.pt
+pruned runs/ft_negclip_lr5e-06_s0/final.pt
+pruned runs/ft_plain_lr1e-05_s0/final.pt
+pruned runs/ft_plain_lr1e-06_s0/final.pt

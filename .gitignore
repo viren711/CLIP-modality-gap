@@ -4,10 +4,10 @@ __pycache__/
 *.egg-info/
 .eggs/
 build/
-dist/
 
 # --- Virtual environments ---
 .venv/
+.venv-gpu/
 venv/
 env/
 
@@ -20,8 +20,9 @@ data/
 *.tar
 *.tar.gz
 *.tgz
+*.part
 
-# --- Model weights / checkpoints ---
+# --- Model weights / checkpoints (re-create with download_data.sh / run_gpu.sh) ---
 checkpoints/
 *.pt
 *.pth
@@ -30,7 +31,9 @@ checkpoints/
 *.bin
 *.onnx
 
-# --- Large cached arrays / embeddings ---
+# --- Cached embeddings (re-create with scripts/embed_all.py) ---
+results/embeddings/
+gpu_results/results/embeddings/
 *.npy
 *.npz
 *.h5
@@ -38,13 +41,25 @@ checkpoints/
 *.pkl
 *.pickle
 
-# --- Logs & experiment tracking ---
-logs/
+# --- Local logs and training runs ---
+/logs/
+/runs/
 *.log
 wandb/
-runs/
 mlruns/
 lightning_logs/
+
+# GPU results are kept: per-run logs and step logs are small and document the runs
+!gpu_results/logs/**
+!gpu_results/runs/**
+!gpu_results/**/*.log
+
+# --- Presentation files ---
+midterm_presentation/
+
+# --- GPU package and server outputs ---
+dist/
+results_gpu.tar.gz
 
 # --- Caches ---
 .cache/
@@ -52,9 +67,10 @@ lightning_logs/
 .mypy_cache/
 .ruff_cache/
 
-# --- Secrets ---
+# --- Secrets / credentials ---
 .env
 .env.*
+server.txt
 
 # --- Editor / OS ---
 .vscode/

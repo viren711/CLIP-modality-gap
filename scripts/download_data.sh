@@ -9,6 +9,7 @@
 #      fetched straight out of the remote zip with HTTP range requests
 #   4. ARO: Visual Genome Relation / Attribution annotations + images
 #   5. NegCLIP checkpoint (ViT-B/32, Yuksekgonul et al. 2023)
+#   6. NegCLIP train / valid split files (from the ARO repo)
 
 set -euo pipefail
 
@@ -29,7 +30,7 @@ fetch() {
     mv "$2.part" "$2"
 }
 
-# gfetch DRIVE_ID OUT: same, for Google Drive files
+# gfetch DRIVE_ID OUT: Google Drive download into OUT.part, renamed on success
 gfetch() {
     "$GDOWN" "https://drive.google.com/uc?id=$1" -O "$2.part"
     mv "$2.part" "$2"
@@ -79,9 +80,25 @@ if [[ ! -d "$ARO/images" ]]; then
 fi
 
 # 5. NegCLIP checkpoint --------------------------------------------------
-if [[ ! -f "$CKPT/negclip.pth" ]]; then
-    log "Downloading NegCLIP checkpoint"
-    gfetch 1ooVVPxB-tvptgmHlIMMFGV3Cg-IrhbRZ "$CKPT/negclip.pth"
+# The 1.8 GB release also contains optimizer state; keep only the weights.
+if [[ ! -f "$CKPT/negclip_state_dict.pt" ]]; then
+    if [[ ! -f "$CKPT/negclip.pth" ]]; then
+        log "Downloading NegCLIP checkpoint"
+        gfetch 1ooVVPxB-tvptgmHlIMMFGV3Cg-IrhbRZ "$CKPT/negclip.pth"
+    fi
+    "$PY" "$ROOT/scripts/convert_negclip.py" "$CKPT/negclip.pth" "$CKPT/negclip_state_dict.pt"
+    rm -f "$CKPT/negclip.pth"
 fi
+
+# 6. NegCLIP train / valid split files (overlap check, CLIP-FT training) --
+NEG="$ROOT/data/negclip"
+mkdir -p "$NEG"
+for split in train valid; do
+    f="$NEG/${split}_neg_clip.tsv"
+    if [[ ! -f "$f" ]]; then
+        log "Downloading NegCLIP $split split file"
+        fetch "https://raw.githubusercontent.com/mertyg/vision-language-models-are-bows/main/temp_data/${split}_neg_clip.tsv" "$f"
+    fi
+done
 
 log "All downloads finished"
