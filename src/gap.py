@@ -88,12 +88,29 @@ def apply_shift(img, txt, delta, alpha, mode="text"):
                  (shift one modality toward the other, as in Chowers et al.)
     mode="both": x' = N(x - alpha/2 * Delta), y' = N(y + alpha/2 * Delta)
                  (symmetric version of Liang et al.'s shift experiment)
+    mode="text_norenorm": y' = y + alpha * Delta, NOT re-normalised. Adds the
+                 same x.Delta to every caption's score for an image, so
+                 image->text rankings cannot change in exact arithmetic
+                 (control for H3). In float32, a handful of near-exact ties
+                 (differing caption scores in the ~7th decimal) can flip when
+                 a large shared constant is added to all of them; on
+                 COCO-Order (25,010 cases) this flips 2 cases for CLIP
+                 (0.008%), confirming rather than contradicting the argument.
+    mode="orth": first remove each caption's deviation along u = Delta/|Delta|
+                 (y - (y.u - mean(y.u)) u), so Delta is exactly orthogonal to
+                 how captions vary, then shift and re-normalise as in "text".
     alpha = 1 closes the gap before re-normalisation; alpha < 0 widens it.
     """
     if mode == "text":
         return img, l2n(txt + alpha * delta)
     if mode == "both":
         return l2n(img - alpha / 2 * delta), l2n(txt + alpha / 2 * delta)
+    if mode == "text_norenorm":
+        return img, txt + alpha * delta
+    if mode == "orth":
+        u = delta / np.linalg.norm(delta)
+        p = txt @ u
+        return img, l2n(txt - np.outer(p - p.mean(), u) + alpha * delta)
     raise ValueError(mode)
 
 

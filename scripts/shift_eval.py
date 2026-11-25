@@ -32,7 +32,8 @@ parser.add_argument("--benchmarks", nargs="+", default=["coco_test", "coco_order
 parser.add_argument("--modes", nargs="+", default=["text", "both"])
 parser.add_argument("--stats", nargs="+", default=["mean", "median"])
 parser.add_argument("--alphas", nargs="+", type=float, default=[-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1.0])
-parser.add_argument("--targets", nargs="+", type=float, default=[0.6, 0.4, 0.2, 0.1])
+parser.add_argument("--targets", nargs="*", type=float, default=[0.6, 0.4, 0.2, 0.1],
+                    help="pass --targets with no values to skip target-gap settings entirely")
 parser.add_argument("--sigmas", nargs="+", type=float, default=[0, 0.25, 0.5, 1.0])
 parser.add_argument("--noise_seeds", type=int, default=3)
 parser.add_argument("--out", default=os.path.join(RESULTS, "shift_eval.csv"))
@@ -66,6 +67,8 @@ for m in args.models:
                     base = dict(model=m, stat=stat, mode=mode, setting=kind, value=value, alpha=alpha,
                                 fit_gap_after=gap_after, bench_gap_after=remaining_gap(img, txt), benchmark=b)
                     for sigma in args.sigmas:
+                        if mode == "text_norenorm" and sigma > 0:
+                            continue  # add_noise re-normalises, which would undo this control
                         seeds = range(args.noise_seeds) if sigma > 0 else [0]
                         res = []
                         for s in seeds:
@@ -74,5 +77,6 @@ for m in args.models:
                         rows.append(dict(base, sigma=sigma, **pd.DataFrame(res).mean().to_dict()))
                 print(f"{m} {stat} {mode} {kind}={value:+.2f} (alpha={alpha:.3f}, gap on val -> {gap_after:.3f})", flush=True)
 
+os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
 pd.DataFrame(rows).to_csv(args.out, index=False)
 print(f"wrote {args.out}")

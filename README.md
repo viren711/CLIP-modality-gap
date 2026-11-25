@@ -91,7 +91,7 @@ scripts/
   run_midterm.sh              the CPU pipeline, in order
   train_finetune.py           NegCLIP-recipe fine-tuning with --hard-images / --hard-captions
   gpu/                        sweep launcher, LR selection, full COCO download
-  make_gpu_package.sh         builds dist/cs725_gpu_package.zip for the GPU server
+  make_gpu_package.sh         builds dist/package.zip for the GPU server (anonymised: top-level dir "ws")
 run_gpu.sh                    the one command to run on a GPU server
 results/                      CPU results: clip + negclip (csv, figures)
 gpu_results/                  GPU results: all 7 models, fine-tuning logs, figures
@@ -125,14 +125,21 @@ bash scripts/run_midterm.sh                 # overlap check -> encode -> gap -> 
 **Fine-tuned controls on a GPU server** (12 runs took 2.2 h on 3 × 48 GB GPUs):
 
 ```bash
-bash scripts/make_gpu_package.sh            # -> dist/cs725_gpu_package.zip (code + data + NegCLIP weights)
-scp dist/cs725_gpu_package.zip user@server:/some/dir/
+bash scripts/make_gpu_package.sh            # -> dist/package.zip (code + data + NegCLIP weights)
+scp dist/package.zip user@server:/tmp/
 # on the server
-unzip cs725_gpu_package.zip && cd cs725_project
-GPUS="0 1 3" CUDA_DEVICE_ORDER=PCI_BUS_ID PRUNE_RUNS=1 \
+cd /tmp && unzip package.zip && cd ws
+GPUS="0 1 2 3" JOBS_PER_GPU=2 \
   TORCH_INDEX=https://download.pytorch.org/whl/cu126 bash run_gpu.sh
 # bring back results_gpu.tar.gz
 ```
+
+`run_gpu.sh` queues training jobs across every listed GPU (2 per GPU where memory
+allows), skipping and later retrying any that hit out-of-memory, and keeps every
+run's checkpoint (as hard links, no extra disk) rather than only the best LR's.
+It also runs a batch-size control (`ft_plain512`), 2 extra seeds per config,
+SugarCrepe evaluation, two additional shift controls (`text_norenorm`, `orth`),
+and a GPT-2 perplexity vs gap-direction analysis.
 
 `run_gpu.sh` downloads the full COCO 2014 images (19 GB) and smoke-tests the heaviest
 config. It then runs the learning-rate sweep, picks the best LR per config, and evaluates

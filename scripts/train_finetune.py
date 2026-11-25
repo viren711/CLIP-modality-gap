@@ -225,5 +225,7 @@ for epoch in range(1, args.epochs + 1):
     if args.max_steps and step >= args.max_steps:
         break
 
-torch.save(model.state_dict(), os.path.join(out_dir, "final.pt"))
+# fp16 on disk halves the size; open_clip copies it back into fp32 parameters on load
+torch.save({k: v.half() if v.is_floating_point() else v for k, v in model.state_dict().items()},
+           os.path.join(out_dir, "final.pt"))
 print(f"saved {os.path.join(out_dir, 'final.pt')}")

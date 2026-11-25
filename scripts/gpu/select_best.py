@@ -28,14 +28,31 @@ os.makedirs(os.path.join(ROOT, "results"), exist_ok=True)
 df.to_csv(os.path.join(ROOT, "results", "finetune_runs.csv"), index=False)
 
 final = df[df.done].sort_values("epoch").groupby("run").tail(1)
+
+
+def export(run, name):
+    """checkpoints/<name>.pt as a hard link to the run's final.pt (no extra disk)."""
+    src, dst = os.path.join(ROOT, "runs", run, "final.pt"), os.path.join(ROOT, "checkpoints", f"{name}.pt")
+    if os.path.exists(dst):
+        os.remove(dst)
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copyfile(src, dst)
+    return dst
+
+
+# every finished run is a model of its own: checkpoints/<config>_lr<lr>_s<seed>.pt
+for run in final.run:
+    export(run, run)
+
 selection = {}
 for config, d in final.groupby("config"):
-    # average over seeds per lr, pick the best lr, then export seed 0 (or the first seed)
-    best_lr = d.groupby("lr")["val_mean_R@1"].mean().idxmax()
-    best = d[d.lr == best_lr].sort_values("seed").iloc[0]
-    src = os.path.join(ROOT, "runs", best.run, "final.pt")
-    dst = os.path.join(ROOT, "checkpoints", f"{config}.pt")
-    shutil.copyfile(src, dst)
+    # best LR judged on seed 0 only, so configs with extra seeds are not favoured
+    d0 = d[d.seed == 0] if (d.seed == 0).any() else d
+    best_lr = d0.groupby("lr")["val_mean_R@1"].mean().idxmax()
+    best = d0[d0.lr == best_lr].iloc[0]
+    dst = export(best.run, config)
     selection[config] = dict(run=best.run, lr=float(best_lr), val_mean_R1=float(best["val_mean_R@1"]),
                              val_gap_norm=float(best.val_gap_norm), checkpoint=dst)
     print(f"{config:11s} -> lr {best_lr:g}  val mean R@1 {best['val_mean_R@1']:.4f}  gap {best.val_gap_norm:.3f}")

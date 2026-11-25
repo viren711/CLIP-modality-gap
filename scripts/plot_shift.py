@@ -21,7 +21,8 @@ from src.common import FIG_DIR, RESULTS  # noqa: E402
 
 # headline metric per benchmark
 METRIC = {"coco_test": ["i2t_R@1", "t2i_R@1"], "coco_order": ["acc"],
-          "vg_relation": ["macro_acc"], "vg_attribution": ["macro_acc"]}
+          "vg_relation": ["macro_acc"], "vg_attribution": ["macro_acc"],
+          "sugarcrepe": ["macro_acc"]}
 
 df = pd.read_csv(os.path.join(RESULTS, "shift_eval.csv"))
 os.makedirs(FIG_DIR, exist_ok=True)

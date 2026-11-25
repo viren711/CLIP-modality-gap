@@ -18,7 +18,7 @@ import random
 
 import numpy as np
 
-from .common import ARO_DIR, COCO_DIR, pre_caption
+from .common import ARO_DIR, COCO_DIR, SUGARCREPE_DIR, pre_caption
 
 
 class _Interner:
@@ -139,10 +139,40 @@ def coco_order(split="test", seed=0):
                 correct=0, groups=None)
 
 
+# --- SugarCrepe (Hsieh et al. 2023) ----------------------------------------
+# https://github.com/RAIVNLab/sugar-crepe : 7 subsets of {image, true caption,
+# hard negative caption}, images are COCO val2017 (by filename). Each subset
+# json is {"<idx>": {"filename", "caption", "negative_caption", ...}, ...}.
+
+SUGARCREPE_SUBSETS = ["add_att", "add_obj", "replace_att", "replace_obj",
+                      "replace_rel", "swap_att", "swap_obj"]
+
+
+def sugarcrepe(subset=None):
+    """One benchmark per subset (sugarcrepe_<subset>), or all 7 pooled if subset=None."""
+    subsets = SUGARCREPE_SUBSETS if subset is None else [subset]
+    imgs, txts = _Interner(), _Interner()
+    case_image, case_texts, groups = [], [], []
+    for sub in subsets:
+        with open(os.path.join(SUGARCREPE_DIR, f"{sub}.json")) as f:
+            ann = json.load(f)
+        for item in ann.values():
+            path = os.path.join(SUGARCREPE_DIR, "val2017", item["filename"])
+            case_image.append(imgs((path, None)))
+            case_texts.append([txts(pre_caption(item["negative_caption"])), txts(pre_caption(item["caption"]))])
+            groups.append(sub)
+    name = f"sugarcrepe_{subset}" if subset else "sugarcrepe"
+    return dict(name=name, images=imgs.items, texts=txts.items,
+                case_image=np.array(case_image), case_texts=np.array(case_texts),
+                correct=1, groups=groups)
+
+
 BENCHMARKS = {
     "coco_val": lambda: coco_karpathy("val"),
     "coco_test": lambda: coco_karpathy("test"),
     "vg_relation": vg_relation,
     "vg_attribution": vg_attribution,
     "coco_order": coco_order,
+    "sugarcrepe": sugarcrepe,
 }
+BENCHMARKS.update({f"sugarcrepe_{s}": (lambda s=s: sugarcrepe(s)) for s in SUGARCREPE_SUBSETS})

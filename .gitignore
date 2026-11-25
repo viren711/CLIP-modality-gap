@@ -71,6 +71,7 @@ results_gpu.tar.gz
 .env
 .env.*
 server.txt
+server_*.txt
 
 # --- Editor / OS ---
 .vscode/
@@ -79,3 +80,4 @@ server.txt
 *~
 .DS_Store
 Thumbs.db
+server_log.txt

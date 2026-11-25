@@ -1,0 +1,20 @@
+To: [CSE sysadmin / gpu1 admin email]
+Subject: Please kill stuck jobs for user mangesh on gpu1 (locked out of account)
+
+Hi,
+
+My jobs are stuck running on gpu1.cse.iitb.ac.in and I'm currently locked out of
+my own account (mangesh), so I can't kill them myself. Could someone please
+terminate the following processes on gpu1? They've been running ~20-21 hours
+and are occupying all 4 GPUs.
+
+PIDs: 2278960, 2279101, 2284400, 2284541, 2281274, 2281415, 2281906, 2282046
+
+Command (for reference): tq_benchmark.py --bench loft ... under
+/users/pg25/mangesh/kvq-tq/
+
+Also, could you help me regain access to my account (password reset / key
+re-add)?
+
+Thanks,
+Mangesh

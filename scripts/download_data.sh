@@ -10,15 +10,18 @@
 #   4. ARO: Visual Genome Relation / Attribution annotations + images
 #   5. NegCLIP checkpoint (ViT-B/32, Yuksekgonul et al. 2023)
 #   6. NegCLIP train / valid split files (from the ARO repo)
+#   7. SugarCrepe annotations + the COCO val2017 images they reference
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 COCO="$ROOT/data/coco"
 ARO="$ROOT/data/aro"
+SUGAR="$ROOT/data/sugarcrepe"
 CKPT="$ROOT/checkpoints"
-PY="$ROOT/.venv/bin/python"
-GDOWN="$ROOT/.venv/bin/gdown"
+# override with an existing venv, e.g. PY=.venv-gpu/bin/python on the GPU server
+PY="${PY:-$ROOT/.venv/bin/python}"
+GDOWN="${GDOWN:-$(dirname "$PY")/gdown}"
 
 mkdir -p "$COCO/annotations" "$ARO" "$CKPT"
 
@@ -100,5 +103,21 @@ for split in train valid; do
         fetch "https://raw.githubusercontent.com/mertyg/vision-language-models-are-bows/main/temp_data/${split}_neg_clip.tsv" "$f"
     fi
 done
+
+# 7. SugarCrepe: 7 subsets' annotations + the val2017 images they reference --
+mkdir -p "$SUGAR"
+SUBSETS="add_att add_obj replace_att replace_obj replace_rel swap_att swap_obj"
+for sub in $SUBSETS; do
+    f="$SUGAR/${sub}.json"
+    if [[ ! -f "$f" ]]; then
+        log "Downloading SugarCrepe $sub"
+        fetch "https://raw.githubusercontent.com/RAIVNLab/sugar-crepe/main/data/${sub}.json" "$f"
+    fi
+done
+if [[ ! -f "$SUGAR/.val2017_done" ]]; then
+    log "Fetching the COCO val2017 images SugarCrepe references"
+    "$PY" "$ROOT/scripts/fetch_sugarcrepe_images.py" "$SUGAR" --workers 16
+    touch "$SUGAR/.val2017_done"
+fi
 
 log "All downloads finished"
