@@ -1,0 +1,118 @@
+\begin{thebibliography}{16}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Chen et~al.(2020)Chen, Kornblith, Norouzi, and Hinton]{chen2020simclr}
+Chen, T., Kornblith, S., Norouzi, M., and Hinton, G.
+\newblock A simple framework for contrastive learning of visual
+  representations.
+\newblock In \emph{Proceedings of the 37th International Conference on Machine
+  Learning (ICML)}, pp.\  1597--1607, 2020.
+
+\bibitem[Chowers et~al.(2026)]{chowers2026bug}
+Chowers et~al.
+\newblock Bug or feature?, 2026.
+
+\bibitem[Hsieh et~al.(2023)Hsieh, Zhang, Ma, Kembhavi, and
+  Krishna]{hsieh2023sugarcrepe}
+Hsieh, C.-Y., Zhang, J., Ma, Z., Kembhavi, A., and Krishna, R.
+\newblock {SugarCrepe}: Fixing hackable benchmarks for vision-language
+  compositionality.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS),
+  Datasets and Benchmarks Track}, volume~36, 2023.
+
+\bibitem[Ilharco et~al.(2021)Ilharco, Wortsman, Wightman, Gordon, Carlini,
+  Taori, Dave, Shankar, Namkoong, Miller, Hajishirzi, Farhadi, and
+  Schmidt]{ilharco2021openclip}
+Ilharco, G., Wortsman, M., Wightman, R., Gordon, C., Carlini, N., Taori, R.,
+  Dave, A., Shankar, V., Namkoong, H., Miller, J., Hajishirzi, H., Farhadi, A.,
+  and Schmidt, L.
+\newblock {OpenCLIP}, 2021.
+
+\bibitem[Kamath et~al.(2024)Kamath, Hsieh, Chang, and
+  Krishna]{kamath2024hardpositive}
+Kamath, A., Hsieh, C.-Y., Chang, K.-W., and Krishna, R.
+\newblock The hard positive truth about vision-language compositionality.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2024.
+
+\bibitem[Karpathy \& Fei-Fei(2015)Karpathy and Fei-Fei]{karpathy2015splits}
+Karpathy, A. and Fei-Fei, L.
+\newblock Deep visual-semantic alignments for generating image descriptions.
+\newblock In \emph{Proceedings of the IEEE Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, pp.\  3128--3137, 2015.
+
+\bibitem[Krishna et~al.(2017)Krishna, Zhu, Groth, Johnson, Hata, Kravitz, Chen,
+  Kalantidis, Li, Shamma, Bernstein, and Fei-Fei]{krishna2017vg}
+Krishna, R., Zhu, Y., Groth, O., Johnson, J., Hata, K., Kravitz, J., Chen, S.,
+  Kalantidis, Y., Li, L.-J., Shamma, D.~A., Bernstein, M.~S., and Fei-Fei, L.
+\newblock Visual {G}enome: Connecting language and vision using crowdsourced
+  dense image annotations.
+\newblock \emph{International Journal of Computer Vision}, 123\penalty0
+  (1):\penalty0 32--73, 2017.
+
+\bibitem[Liang et~al.(2022)Liang, Zhang, Kwon, Yeung, and Zou]{liang2022gap}
+Liang, W., Zhang, Y., Kwon, Y., Yeung, S., and Zou, J.
+\newblock Mind the gap: Understanding the modality gap in multi-modal
+  contrastive representation learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~35, pp.\  17612--17625, 2022.
+
+\bibitem[Lin et~al.(2014)Lin, Maire, Belongie, Hays, Perona, Ramanan,
+  Doll{\'a}r, and Zitnick]{lin2014coco}
+Lin, T.-Y., Maire, M., Belongie, S., Hays, J., Perona, P., Ramanan, D.,
+  Doll{\'a}r, P., and Zitnick, C.~L.
+\newblock Microsoft {COCO}: Common objects in context.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, pp.\
+  740--755, 2014.
+
+\bibitem[Loshchilov \& Hutter(2019)Loshchilov and Hutter]{loshchilov2019adamw}
+Loshchilov, I. and Hutter, F.
+\newblock Decoupled weight decay regularization.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2019.
+
+\bibitem[Radford et~al.(2019)Radford, Wu, Child, Luan, Amodei, and
+  Sutskever]{radford2019gpt2}
+Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., and Sutskever, I.
+\newblock Language models are unsupervised multitask learners.
+\newblock Technical report, OpenAI, 2019.
+
+\bibitem[Radford et~al.(2021)Radford, Kim, Hallacy, Ramesh, Goh, Agarwal,
+  Sastry, Askell, Mishkin, Clark, Krueger, and Sutskever]{radford2021clip}
+Radford, A., Kim, J.~W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry,
+  G., Askell, A., Mishkin, P., Clark, J., Krueger, G., and Sutskever, I.
+\newblock Learning transferable visual models from natural language
+  supervision.
+\newblock In \emph{Proceedings of the 38th International Conference on Machine
+  Learning (ICML)}, pp.\  8748--8763, 2021.
+
+\bibitem[van~den Oord et~al.(2018)van~den Oord, Li, and Vinyals]{oord2018cpc}
+van~den Oord, A., Li, Y., and Vinyals, O.
+\newblock Representation learning with contrastive predictive coding.
+\newblock \emph{arXiv preprint arXiv:1807.03748}, 2018.
+
+\bibitem[Wang \& Isola(2020)Wang and Isola]{wang2020alignment}
+Wang, T. and Isola, P.
+\newblock Understanding contrastive representation learning through alignment
+  and uniformity on the hypersphere.
+\newblock In \emph{Proceedings of the 37th International Conference on Machine
+  Learning (ICML)}, pp.\  9929--9939, 2020.
+
+\bibitem[Yuksekgonul et~al.(2023)Yuksekgonul, Bianchi, Kalluri, Jurafsky, and
+  Zou]{yuksekgonul2023bow}
+Yuksekgonul, M., Bianchi, F., Kalluri, P., Jurafsky, D., and Zou, J.
+\newblock When and why vision-language models behave like bags-of-words, and
+  what to do about it?
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2023.
+
+\bibitem[Zhai et~al.(2023)Zhai, Mustafa, Kolesnikov, and Beyer]{zhai2023siglip}
+Zhai, X., Mustafa, B., Kolesnikov, A., and Beyer, L.
+\newblock Sigmoid loss for language image pre-training.
+\newblock In \emph{Proceedings of the IEEE/CVF International Conference on
+  Computer Vision (ICCV)}, pp.\  11975--11986, 2023.
+
+\end{thebibliography}

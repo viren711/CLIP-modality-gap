@@ -1,0 +1,59 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Hsieh et~al.(2023)Hsieh, Zhang, Ma, Kembhavi, and
+  Krishna]{hsieh2023sugarcrepe}
+Hsieh, C.-Y., Zhang, J., Ma, Z., Kembhavi, A., and Krishna, R.
+\newblock {SugarCrepe}: Fixing hackable benchmarks for vision-language
+  compositionality.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS),
+  Datasets and Benchmarks Track}, volume~36, 2023.
+
+\bibitem[Kamath et~al.(2024)Kamath, Hsieh, Chang, and
+  Krishna]{kamath2024hardpositive}
+Kamath, A., Hsieh, C.-Y., Chang, K.-W., and Krishna, R.
+\newblock The hard positive truth about vision-language compositionality.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2024.
+
+\bibitem[Liang et~al.(2022)Liang, Zhang, Kwon, Yeung, and Zou]{liang2022gap}
+Liang, W., Zhang, Y., Kwon, Y., Yeung, S., and Zou, J.
+\newblock Mind the gap: Understanding the modality gap in multi-modal
+  contrastive representation learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, volume~35, pp.\  17612--17625, 2022.
+
+\bibitem[Lin et~al.(2014)Lin, Maire, Belongie, Hays, Perona, Ramanan,
+  Doll{\'a}r, and Zitnick]{lin2014coco}
+Lin, T.-Y., Maire, M., Belongie, S., Hays, J., Perona, P., Ramanan, D.,
+  Doll{\'a}r, P., and Zitnick, C.~L.
+\newblock Microsoft {COCO}: Common objects in context.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, pp.\
+  740--755, 2014.
+
+\bibitem[Radford et~al.(2021)Radford, Kim, Hallacy, Ramesh, Goh, Agarwal,
+  Sastry, Askell, Mishkin, Clark, Krueger, and Sutskever]{radford2021clip}
+Radford, A., Kim, J.~W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry,
+  G., Askell, A., Mishkin, P., Clark, J., Krueger, G., and Sutskever, I.
+\newblock Learning transferable visual models from natural language
+  supervision.
+\newblock In \emph{Proceedings of the 38th International Conference on Machine
+  Learning (ICML)}, pp.\  8748--8763, 2021.
+
+\bibitem[van~den Oord et~al.(2018)van~den Oord, Li, and Vinyals]{oord2018cpc}
+van~den Oord, A., Li, Y., and Vinyals, O.
+\newblock Representation learning with contrastive predictive coding.
+\newblock \emph{arXiv preprint arXiv:1807.03748}, 2018.
+
+\bibitem[Yuksekgonul et~al.(2023)Yuksekgonul, Bianchi, Kalluri, Jurafsky, and
+  Zou]{yuksekgonul2023bow}
+Yuksekgonul, M., Bianchi, F., Kalluri, P., Jurafsky, D., and Zou, J.
+\newblock When and why vision-language models behave like bags-of-words, and
+  what to do about it?
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2023.
+
+\end{thebibliography}

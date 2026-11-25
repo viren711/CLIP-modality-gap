@@ -61,6 +61,8 @@ parser.add_argument("--warmup", type=int, default=50)
 parser.add_argument("--wd", type=float, default=0.2)
 parser.add_argument("--workers", type=int, default=min(16, os.cpu_count() or 1))
 parser.add_argument("--seed", type=int, default=0)
+parser.add_argument("--gap-reg", type=float, default=0.0,
+                    help="weight of ||mean(img) - mean(matched txt)||^2 added to the loss (0 = off)")
 parser.add_argument("--train-tsv", default=os.path.join(DATA, "negclip", "train_neg_clip.tsv"))
 parser.add_argument("--val-tsv", default=os.path.join(DATA, "negclip", "valid_neg_clip.tsv"))
 parser.add_argument("--image-root", default=DATA, help="tsv file paths are relative to this (coco/train2014/...)")
@@ -205,6 +207,9 @@ for epoch in range(1, args.epochs + 1):
         with torch.autocast("cuda", dtype=torch.float16, enabled=cuda):
             img_f, txt_f, scale = model(images, texts)
             loss = loss_fn(img_f, txt_f, scale)
+            if args.gap_reg > 0:  # close the modality gap during training
+                gap_sq = (img_f.float().mean(0) - txt_f[:len(img_f)].float().mean(0)).pow(2).sum()
+                loss = loss + args.gap_reg * gap_sq
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
